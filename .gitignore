@@ -1,0 +1,49 @@
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Variables de entorno con secretos reales
+.env
+.env.local
+.env.*.local
+
+# Claude Code (configuracion local de la sesion)
+.claude/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Mypy
+.mypy_cache/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Datos de prueba con informacion sensible
+tests/data/*.xlsx
