@@ -389,9 +389,26 @@ Meta Cloud API (WhatsApp):
 
 ### Datos sensibles
 
-- `whatsapp_access_token`: cifrado en BD, nunca expuesto en logs ni respuestas API
-- `password_hash`: bcrypt, nunca expuesto
+- `whatsapp_access_token`: cifrado en BD con Fernet (AES-128-CBC + HMAC-SHA256) via `app/core/crypto.py`. Nunca expuesto en logs ni respuestas API
+- `password_hash`: bcrypt via `passlib`, nunca expuesto
 - PII (nombre, teléfono, dirección): acceso restringido por rol y tenant
+
+### Encripción simétrica en BD (`app/core/crypto.py`)
+
+Todo valor sensible que se persista en BD se cifra con Fernet antes de almacenarse. La llave (`ENCRYPTION_KEY`) vive exclusivamente en variables de entorno, nunca en la BD.
+
+```
+encrypt_value(plaintext)  →  token Fernet  →  columna Text en BD
+decrypt_value(ciphertext) →  plaintext     →  usado en servicios / scheduler
+```
+
+`decrypt_value` es tolerante a valores legacy (texto plano previos al cifrado), lo que permite activar la encripción en producción sin downtime ni migración de datos.
+
+**Campos actualmente cifrados:**
+
+| Tabla | Campo | Cifrado desde |
+|---|---|---|
+| `tenants` | `whatsapp_access_token` | v1.9.0 |
 
 ---
 

@@ -5,6 +5,7 @@ Recibe mensajes entrantes y actualizaciones de estado.
 from fastapi import APIRouter, Request, HTTPException, Query, Depends
 from fastapi.responses import PlainTextResponse
 from app.core.config import settings
+from app.core.crypto import decrypt_value
 from app.services.whatsapp_service import WhatsAppService, parse_webhook_message
 from app.agents.orchestrator import AgentOrchestrator
 import structlog
@@ -94,7 +95,7 @@ async def _process_webhook_payload(payload: dict):
                 # Usuario no registrado
                 wa_service = WhatsAppService(
                     phone_number_id=tenant.whatsapp_phone_number_id,
-                    access_token=tenant.whatsapp_access_token,
+                    access_token=decrypt_value(tenant.whatsapp_access_token),
                     tenant_id=str(tenant.id),
                 )
                 await wa_service.send_text_message(
@@ -126,7 +127,7 @@ async def _process_webhook_payload(payload: dict):
             # Enviar respuesta
             wa_service = WhatsAppService(
                 phone_number_id=tenant.whatsapp_phone_number_id,
-                access_token=tenant.whatsapp_access_token,
+                access_token=decrypt_value(tenant.whatsapp_access_token),
                 tenant_id=str(tenant.id),
             )
 

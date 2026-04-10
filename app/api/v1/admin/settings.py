@@ -89,9 +89,10 @@ async def configure_whatsapp(
 ):
     """Configura las credenciales de WhatsApp Business para el tenant."""
     tenant = await _get_tenant(current_user["tenant_id"], db)
+    from app.core.crypto import encrypt_value
     tenant.whatsapp_phone_number_id = data.phone_number_id
     tenant.whatsapp_business_account_id = data.business_account_id
-    tenant.whatsapp_access_token = data.access_token  # TODO: encriptar
+    tenant.whatsapp_access_token = encrypt_value(data.access_token)
     tenant.whatsapp_phone_display = data.phone_display
     await db.flush()
     return _tenant_to_out(tenant)
@@ -124,10 +125,12 @@ async def test_whatsapp_connection(
         raise HTTPException(status_code=400, detail="WhatsApp no esta configurado")
 
     try:
+        from app.core.crypto import decrypt_value
+        token = decrypt_value(tenant.whatsapp_access_token)
         async with httpx.AsyncClient() as client:
             r = await client.get(
                 f"https://graph.facebook.com/v20.0/{tenant.whatsapp_phone_number_id}",
-                headers={"Authorization": f"Bearer {tenant.whatsapp_access_token}"},
+                headers={"Authorization": f"Bearer {token}"},
             )
             r.raise_for_status()
             return {"status": "ok", "phone_info": r.json()}

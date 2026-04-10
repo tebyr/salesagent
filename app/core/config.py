@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     celery_broker_url: str = "redis://localhost:6379/1"
     celery_result_backend: str = "redis://localhost:6379/2"
 
+    # Encripcion simetrica (Fernet) para valores sensibles en BD
+    # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    encryption_key: str
+
     # Anthropic
     anthropic_api_key: str
 
