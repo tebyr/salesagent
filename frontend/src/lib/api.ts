@@ -73,6 +73,33 @@ export const deleteGoal = (id: string) => api.delete(`/admin/goals/${id}`);
 // aliases
 export const createGoalsBulk = bulkCreateGoals;
 
+// --- Productos ---
+export const getProductos = (params?: Record<string, string | number | undefined>) =>
+  api.get("/admin/productos/", { params }).then((r) => r.data);
+export const createProducto = (data: Record<string, unknown>) =>
+  api.post("/admin/productos/", data).then((r) => r.data);
+export const updateProducto = (id: string, data: Record<string, unknown>) =>
+  api.patch(`/admin/productos/${id}`, data).then((r) => r.data);
+export const deleteProducto = (id: string) => api.delete(`/admin/productos/${id}`);
+
+// --- Zonas ---
+export const getZonas = (params?: Record<string, string | boolean | undefined>) =>
+  api.get("/admin/zonas/", { params }).then((r) => r.data);
+export const createZona = (data: Record<string, unknown>) =>
+  api.post("/admin/zonas/", data).then((r) => r.data);
+export const updateZona = (id: string, data: Record<string, unknown>) =>
+  api.patch(`/admin/zonas/${id}`, data).then((r) => r.data);
+export const deleteZona = (id: string) => api.delete(`/admin/zonas/${id}`);
+
+// --- Rutas ---
+export const getRutas = (params?: Record<string, string | boolean | undefined>) =>
+  api.get("/admin/rutas/", { params }).then((r) => r.data);
+export const createRuta = (data: Record<string, unknown>) =>
+  api.post("/admin/rutas/", data).then((r) => r.data);
+export const updateRuta = (id: string, data: Record<string, unknown>) =>
+  api.patch(`/admin/rutas/${id}`, data).then((r) => r.data);
+export const deleteRuta = (id: string) => api.delete(`/admin/rutas/${id}`);
+
 // --- Settings ---
 export const getTenantSettings = () => api.get("/admin/settings/").then((r) => r.data);
 export const updateTenantSettings = (data: Record<string, unknown>) =>

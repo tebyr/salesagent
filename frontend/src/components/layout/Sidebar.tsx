@@ -3,18 +3,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, Store, Target, Settings,
-  MessageSquare, LogOut, TrendingUp,
+  MessageSquare, LogOut, Package, MapPin,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Cookies from "js-cookie";
 import { useRouter } from "next/navigation";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/salespersons", label: "Vendedores", icon: Users },
-  { href: "/clients", label: "Clientes", icon: Store },
-  { href: "/goals", label: "Metas", icon: Target },
-  { href: "/settings", label: "Configuracion", icon: Settings },
+  { href: "/dashboard",    label: "Dashboard",   icon: LayoutDashboard },
+  { href: "/salespersons", label: "Vendedores",  icon: Users },
+  { href: "/clients",      label: "Clientes",    icon: Store },
+  { href: "/productos",    label: "Productos",   icon: Package },
+  { href: "/rutas",        label: "Rutas",       icon: MapPin },
+  { href: "/goals",        label: "Metas",       icon: Target },
+  { href: "/settings",     label: "Configuracion", icon: Settings },
 ];
 
 export function Sidebar() {
