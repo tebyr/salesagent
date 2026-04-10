@@ -35,7 +35,7 @@ class Client(UUIDMixin, TimestampMixin, Base):
     # Ubicacion
     address = Column(String(500), nullable=True)
     city = Column(String(100), nullable=True)
-    zone = Column(String(100), nullable=True)    # Zona de ruta
+    zone_name = Column(String(100), nullable=True)    # Zona de ruta (texto libre, legacy)
     neighborhood = Column(String(100), nullable=True)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)

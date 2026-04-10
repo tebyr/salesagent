@@ -114,7 +114,7 @@ async def list_clients(
     if salesperson_id:
         filters.append(Client.salesperson_id == salesperson_id)
     if zone:
-        filters.append(Client.zone == zone)
+        filters.append(Client.zone_name == zone)
     if segment:
         filters.append(Client.segment == segment)
     if is_active is not None:
