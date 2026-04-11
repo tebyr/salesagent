@@ -11,14 +11,15 @@
 |---------|------------|---------|
 | 1.0.0   | 2026-04-11 | Plan inicial basado en estado 72% al cierre sesión 4 |
 | 1.1.0   | 2026-04-11 | Fase 1 completada — P1 todos los ítems ✅ |
+| 1.2.0   | 2026-04-11 | Fase 2: ítems 7 y 9 completados — API tenants + Reports API |
 
 ---
 
-## Estado actual: ~75%
+## Estado actual: ~82%
 
-El núcleo funcional está completo: modelos, agentes IA, scheduler, API admin (9 endpoints), webhook WhatsApp, frontend (8 páginas), encriptación, RAG semántico, seed y tests unitarios. **Fase 1 completada** — el sistema puede levantarse en staging con un tenant real.
+Fase 1 completada. En Fase 2: API de gestión de tenants y Reports API completadas. Pendiente: tests de integración, infraestructura AWS y CI/CD (requieren decisiones externas — cuenta AWS, dominio).
 
-**Frente activo: Fase 2** (infraestructura AWS, CI/CD, gestión de tenants).
+**Frente activo: Fase 2** — próximo ítem: tests de integración (ítem 8), luego infra AWS (ítem 5) + CI/CD (ítem 6).
 **Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---
@@ -38,17 +39,17 @@ El núcleo funcional está completo: modelos, agentes IA, scheduler, API admin (
 
 ---
 
-## Fase 2 — Producción multi-tenant
+## Fase 2 — Producción multi-tenant (EN CURSO — sesión 6)
 **Objetivo:** infraestructura cloud lista, CI/CD automatizado, gestión de tenants desde plataforma.
 **Criterio de salida:** se puede incorporar un nuevo tenant sin tocar código.
 
-| # | Ítem | Prioridad | Esfuerzo estimado |
-|---|------|-----------|-------------------|
-| 5 | Infraestructura AWS (ECS Fargate + RDS + ElastiCache + ALB) | Alta | 2-3 días |
-| 6 | Pipeline CI/CD GitHub Actions (lint → test → build → deploy) | Alta | 1 día |
-| 7 | API gestión de tenants (crear/configurar/suspender desde panel) | Alta | 1 día |
-| 8 | Tests de integración contra BD real + cobertura agentes | Media | 2 días |
-| 9 | Reports API — exportación CSV/PDF ventas, clientes, metas | Media | 1 día |
+| # | Ítem | Estado | Commit |
+|---|------|--------|--------|
+| 7 | API gestión de tenants (crear/configurar/suspender desde panel) | ✅ | `7c5f50a` |
+| 9 | Reports API — exportación CSV/PDF ventas, clientes, metas | ✅ | `7682fad` |
+| 8 | Tests de integración contra BD real + cobertura agentes | ⬜ | — |
+| 5 | Infraestructura AWS (ECS Fargate + RDS + ElastiCache + ALB) | ⬜ | — |
+| 6 | Pipeline CI/CD GitHub Actions (lint → test → build → deploy) | ⬜ | — |
 
 **% al completar Fase 2: ~95%**
 

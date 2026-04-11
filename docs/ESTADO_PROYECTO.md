@@ -12,6 +12,7 @@
 | 1.0.0   | 2026-04-11 | 4      | Documento inicial. Estado al cierre del bloque 2 (seed + tests) |
 | 1.0.1   | 2026-04-11 | 4      | +CLAUDE.md, +/actualizar-estado command, +ROADMAP.md, +skill 09_project_state_management |
 | 1.1.0   | 2026-04-11 | 5      | P1 completo: index_product_task, Sentry init, docs/DEPLOY.md, scripts/start_dev.sh |
+| 1.2.0   | 2026-04-11 | 6      | API platform/tenants (ítem 7) + Reports API CSV/PDF (ítem 9) + seed_platform.py |
 
 ---
 
@@ -21,8 +22,7 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 
 **Directorio del proyecto:** `/Users/oscarmauriciogomezacevedo/claudecode/salesagent`
 **Repositorio:** `https://github.com/tebyr/salesagent.git` (rama `master`)
-**Último commit:** `be73138` — feat: implement index_product_task Celery task for RAG indexing
-> ⚠️ 5 commits pendientes de push a `origin/master` (incluyendo Sentry, DEPLOY.md, start_dev.sh y este documento)
+**Último commit:** `7682fad` — feat: add reports API — ventas, clientes, metas CSV + PDF (item 9)
 
 ### Stack
 | Capa | Tecnología |
@@ -40,10 +40,10 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 | Infra local | Docker Compose (API + Celery worker + beat + Flower + PG + Redis) |
 | Infra cloud | AWS ECS Fargate + RDS + ElastiCache (pendiente) |
 
-### Avance global: **~75%**
+### Avance global: **~82%**
 
 ```
-Backend core (modelos, DB, API admin, agentes)   ████████████████████  95%
+Backend core (modelos, DB, API admin, agentes)   ████████████████████  98%
 Scheduler + servicios                             ████████████████████  95%
 Frontend panel admin                              ████████████████████  90%
 RAG / búsqueda semántica                         ████████████████░░░░  80%
@@ -64,7 +64,7 @@ Documentación                                     █████████�
 |-----------|-----------------|--------|-------|
 | Configuración | `app/core/config.py` | ✅ | Settings Pydantic; requiere 12+ env vars |
 | Base de datos | `app/core/database.py` | ✅ | AsyncSessionLocal, get_db, init_db |
-| Seguridad JWT | `app/core/security.py` | ✅ | hash_password, verify_password, require_roles |
+| Seguridad JWT | `app/core/security.py` | ✅ | hash_password, verify_password, require_roles, require_platform_admin. JWT incluye tenant_slug |
 | Encriptación | `app/core/crypto.py` | ✅ | encrypt_value / decrypt_value Fernet; tolerancia legacy |
 | App principal | `app/api/main.py` | ✅ | Lifespan, CORS, routers registrados. Sentry init con FastApi/SQLAlchemy/CeleryIntegration |
 
@@ -110,7 +110,17 @@ Documentación                                     █████████�
 | rutas | `admin/rutas.py` | ✅ | CRUD rutas; valida RouteType y días 1-6 |
 | goals | `admin/goals.py` | ✅ | CRUD metas por vendedor |
 | settings | `admin/settings.py` | ✅ | WhatsApp config; token encriptado con Fernet |
-| reports | `api/v1/reports/__init__.py` | ⬜ | Carpeta vacía — endpoints CSV/PDF pendientes |
+| reports | `api/v1/reports/` | ✅ | 5 endpoints: ventas CSV+PDF, clientes CSV, metas CSV+PDF. Filtros: date_from/to, salesperson_id |
+
+### Backend — API Platform (super-admin SaaS)
+
+| Router | Archivo | Estado | Endpoints |
+|--------|---------|--------|-----------|
+| tenants | `platform/tenants.py` | ✅ | GET / · POST / · GET {id} · PATCH {id} · POST {id}/suspend · POST {id}/activate · POST {id}/reset-token |
+
+> 🔑 Acceso exclusivo: `role=admin` + `tenant_slug=__platform__` (validado por `require_platform_admin`).
+> 🔑 Crear super-admin con: `python scripts/seed_platform.py --email x --password y`
+> 🔑 El tenant `__platform__` nunca aparece en listados de tenants del panel admin.
 
 ### Backend — Agentes IA
 
@@ -213,7 +223,7 @@ Documentación                                     █████████�
 |-----------|--------|---------|
 | `docs/ARCHITECTURE.md` | ✅ | Incluye pgvector, Voyage AI, crypto |
 | `docs/DATA_DICTIONARY.md` | ✅ | v1.8.0 — semantic_tags, embedding |
-| `docs/ESTADO_PROYECTO.md` | ✅ | v1.1.0 (este archivo) |
+| `docs/ESTADO_PROYECTO.md` | ✅ | v1.2.0 (este archivo) |
 | `docs/ROADMAP.md` | ✅ | v1.0.0 |
 | `docs/DEPLOY.md` | ✅ | Runbook completo: clonar, .env, migraciones, seed, Docker, ngrok, smoke tests |
 | `CLAUDE.md` | ✅ | Arranque automático con @import |
@@ -225,6 +235,7 @@ Documentación                                     █████████�
 |--------|--------|-----|
 | `scripts/seed_tenant.py` | ✅ | `python scripts/seed_tenant.py` — crea tenant completo con 40 clientes, 30 productos, 90 días historial |
 | `scripts/start_dev.sh` | ✅ | `./scripts/start_dev.sh` — levanta ngrok, obtiene URL pública, muestra instrucciones para configurar webhook en Meta |
+| `scripts/seed_platform.py` | ✅ | `python scripts/seed_platform.py` — crea tenant `__platform__` y super-admin SaaS. Idempotente. |
 
 ---
 
@@ -258,15 +269,20 @@ Estas decisiones están implementadas y documentadas. No requieren revisión sal
 | 3 | Runbook de deploy a staging (`docs/DEPLOY.md`) | ✅ | pendiente commit |
 | 4 | Script ngrok para desarrollo (`scripts/start_dev.sh`) | ✅ | pendiente commit |
 
-### P1 (nuevo) — Bloqueante para producción
+### ✅ P1 ex-P2 — Ítems independientes completados (sesión 6)
+
+| # | Tarea | Estado | Commit |
+|---|-------|--------|--------|
+| 7 | API gestión de tenants (`/api/v1/platform/tenants/`) | ✅ | `7c5f50a` |
+| 9 | Reports API — ventas/clientes/metas CSV+PDF | ✅ | `7682fad` |
+
+### P1 — Bloqueante para producción (frente activo)
 
 | # | Tarea | Qué hacer | Archivo(s) a tocar |
 |---|-------|-----------|-------------------|
-| 5 | **Infraestructura AWS** | Terraform o CDK: ECS Fargate (API + Celery), RDS PostgreSQL 16 con pgvector, ElastiCache Redis, ALB, S3. | `infra/` (nuevo) |
-| 6 | **CI/CD GitHub Actions** | Pipeline: lint (ruff), tests (pytest), build Docker, push ECR, deploy ECS. | `.github/workflows/` (nuevo) |
-| 7 | **Gestión de tenants (admin SaaS)** | Endpoints para crear/suspender/configurar tenants desde la plataforma. Hoy se hace con seed manual. | `app/api/v1/admin/tenants.py` (nuevo) |
 | 8 | **Tests de integración** | Tests contra BD real (PostgreSQL), cobertura de agentes, ConversationService, AnalyticsService. | `tests/integration/` (nuevo) |
-| 9 | **Reports API** | Endpoints de exportación CSV/PDF para reportes de ventas, clientes, metas. | `app/api/v1/reports/` (carpeta vacía) |
+| 5 | **Infraestructura AWS** | Terraform o CDK: ECS Fargate (API + Celery), RDS PostgreSQL 16 con pgvector, ElastiCache Redis, ALB, S3. Requiere decisiones externas (cuenta AWS, dominio, región). | `infra/` (nuevo) |
+| 6 | **CI/CD GitHub Actions** | Pipeline: lint (ruff), tests (pytest), build Docker, push ECR, deploy ECS. Depende de ítem 5. | `.github/workflows/` (nuevo) |
 
 ### P3 — Mejoras y escalabilidad
 
@@ -340,4 +356,5 @@ cd frontend && npm install && npm run dev
 | 4a | 2026-04-10 | Scheduler completo (8 tareas), encriptación Fernet, zonas/rutas endpoints, frontend productos/rutas | `11d2c58` `6197e35` |
 | 4b | 2026-04-11 | Seed reescrito (40 clientes, 30 productos, 90d historia), migración 003, suite tests (75 tests) | `6e4b670` `47db787` |
 | 4c | 2026-04-11 | CLAUDE.md + ESTADO_PROYECTO.md + ROADMAP.md + /actualizar-estado + skill 09_project_state_management | `3d765fe` |
-| 5  | 2026-04-11 | P1 completo: index_product_task (RAG), Sentry init en main.py, DEPLOY.md runbook, scripts/start_dev.sh ngrok | `be73138` + pendientes |
+| 5  | 2026-04-11 | P1 completo: index_product_task (RAG), Sentry init en main.py, DEPLOY.md runbook, scripts/start_dev.sh ngrok | `be73138` `907602b` |
+| 6  | 2026-04-11 | API platform/tenants CRUD (ítem 7) + Reports API CSV+PDF ventas/clientes/metas (ítem 9) + seed_platform.py | `7c5f50a` `7682fad` |
