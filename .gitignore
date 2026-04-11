@@ -8,8 +8,9 @@ env/
 .env.local
 .env.*.local
 
-# Claude Code (configuracion local de la sesion)
-.claude/
+# Claude Code — solo archivos de configuracion local (no los commands del proyecto)
+.claude/settings.local.json
+.claude/*.json
 
 # Python
 __pycache__/
