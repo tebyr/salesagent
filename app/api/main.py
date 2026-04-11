@@ -8,6 +8,7 @@ from app.core.config import settings
 from app.core.database import init_db
 from app.api.v1.webhooks.whatsapp import router as whatsapp_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.platform import router as platform_router
 import structlog
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -86,6 +87,7 @@ app.include_router(
     tags=["WhatsApp Webhook"],
 )
 app.include_router(admin_router, prefix="/api/v1")
+app.include_router(platform_router, prefix="/api/v1")
 
 
 @app.get("/health")

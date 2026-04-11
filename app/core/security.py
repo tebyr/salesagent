@@ -41,10 +41,11 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict:
         payload = jwt.decode(token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm])
         user_id: str = payload.get("sub")
         tenant_id: str = payload.get("tenant_id")
+        tenant_slug: str = payload.get("tenant_slug", "")
         role: str = payload.get("role")
         if user_id is None:
             raise credentials_exception
-        return {"user_id": user_id, "tenant_id": tenant_id, "role": role}
+        return {"user_id": user_id, "tenant_id": tenant_id, "tenant_slug": tenant_slug, "role": role}
     except JWTError:
         raise credentials_exception
 
@@ -59,3 +60,22 @@ def require_roles(*roles: str):
             )
         return current_user
     return _check
+
+
+async def require_platform_admin(current_user: dict = Depends(get_current_user)) -> dict:
+    """
+    Dependencia exclusiva para endpoints de gestion de la plataforma SaaS.
+    Valida que el usuario sea ADMIN del tenant especial '__platform__'.
+    Ese tenant se crea con: python scripts/seed_platform.py
+    """
+    if current_user.get("role") != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido a administradores de plataforma",
+        )
+    if current_user.get("tenant_slug") != "__platform__":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso restringido a administradores de plataforma",
+        )
+    return current_user
