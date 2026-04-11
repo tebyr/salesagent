@@ -149,7 +149,7 @@ async def create_producto(
     # .delay() es no bloqueante — el endpoint responde inmediatamente
     try:
         from app.scheduler.tasks import index_product_task
-        index_product_task.delay(str(product.id))
+        index_product_task.delay(str(product.id), tenant_id)
     except Exception as exc:
         # Si Celery no esta disponible no bloqueamos la creacion del producto
         import logging
@@ -194,7 +194,7 @@ async def update_producto(
     if semantic_fields & set(updated_fields.keys()):
         try:
             from app.scheduler.tasks import index_product_task
-            index_product_task.delay(str(product.id))
+            index_product_task.delay(str(product.id), current_user["tenant_id"])
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning(

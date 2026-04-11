@@ -165,6 +165,8 @@ def generate_daily_sales_snapshots(self):
     asyncio.run(_generate_daily_sales_snapshots())
 
 
+
+
 # ============================================================
 # IMPLEMENTACIONES ASYNC
 # ============================================================
@@ -1424,26 +1426,33 @@ async def _generate_daily_sales_snapshots():
     default_retry_delay=60,
     name="app.scheduler.tasks.index_product_task",
 )
-def index_product_task(self, product_id: str) -> None:
+def index_product_task(self, product_id: str, tenant_id: str | None = None) -> None:
     """
     Indexa semanticamente un producto generando su embedding via Voyage AI
     y persistiendo el vector en la columna products.embedding.
 
-    Se dispara automaticamente desde los endpoints POST/PATCH de productos.
+    Se dispara automaticamente desde los endpoints POST/PATCH de productos
+    cuando se crean o se modifican campos semanticamente relevantes
+    (name, description, brand, category, subcategory, unit, unit_content, semantic_tags).
     Tambien puede invocarse manualmente para re-indexar un producto especifico.
 
     Args:
         product_id: UUID del producto como string (JSON-serializable para Celery).
+        tenant_id:  UUID del tenant, opcional, solo para trazabilidad en logs.
 
     Comportamiento ante errores:
-        - Reintenta hasta 3 veces con delay de 60s entre intentos.
-        - Si agota los reintentos, captura la excepcion en Sentry y la re-lanza.
+        - ValueError (texto insuficiente): NO reintenta. El producto necesita
+          descripcion o semantic_tags antes de poder indexarse.
+        - Cualquier otro error (red, rate limit de Voyage AI, BD): reintenta
+          hasta 3 veces con 60 segundos entre intentos.
+        - Si agota los reintentos, captura la excepcion en Sentry.
     """
     from uuid import UUID
     from app.core.database import get_sync_session_for_task
     from app.services.embedding_service import index_product
 
-    log = logger.bind(product_id=product_id)
+    log = logger.bind(product_id=product_id, tenant_id=tenant_id,
+                      attempt=self.request.retries + 1)
     log.info("index_product_task_started")
 
     try:
@@ -1453,6 +1462,11 @@ def index_product_task(self, product_id: str) -> None:
 
         asyncio.run(_run())
         log.info("index_product_task_completed")
+
+    except ValueError as exc:
+        # Texto semantico insuficiente: no tiene sentido reintentar hasta
+        # que el operador enriquezca el producto con descripcion o semantic_tags.
+        log.warning("index_product_skipped_insufficient_text", reason=str(exc))
 
     except Exception as exc:
         log.error("index_product_task_failed", error=str(exc))
