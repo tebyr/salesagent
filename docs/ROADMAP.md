@@ -12,6 +12,7 @@
 | 1.0.0   | 2026-04-11 | Plan inicial basado en estado 72% al cierre sesión 4 |
 | 1.1.0   | 2026-04-11 | Fase 1 completada — P1 todos los ítems ✅ |
 | 1.2.0   | 2026-04-11 | Fase 2: ítems 7 y 9 completados — API tenants + Reports API |
+| 1.2.1   | 2026-04-11 | +docs/formacion/ y docs/go_to_market/ — documentación estratégica y de producto |
 
 ---
 
