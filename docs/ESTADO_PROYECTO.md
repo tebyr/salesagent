@@ -10,6 +10,7 @@
 | Versión | Fecha      | Sesión | Cambios |
 |---------|------------|--------|---------|
 | 1.0.0   | 2026-04-11 | 4      | Documento inicial. Estado al cierre del bloque 2 (seed + tests) |
+| 1.0.1   | 2026-04-11 | 4      | +CLAUDE.md, +/actualizar-estado command, +ROADMAP.md, +skill 09_project_state_management |
 
 ---
 
@@ -19,7 +20,8 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 
 **Directorio del proyecto:** `/Users/oscarmauriciogomezacevedo/claudecode/salesagent`
 **Repositorio:** `https://github.com/tebyr/salesagent.git` (rama `master`)
-**Último commit:** `47db787` — feat: add test suite (conftest + 6 test modules) and pytest.ini
+**Último commit:** `3d765fe` — docs: add project state document, roadmap, CLAUDE.md and /actualizar-estado command
+> ⚠️ 3 commits pendientes de push a `origin/master`
 
 ### Stack
 | Capa | Tecnología |
@@ -208,8 +210,10 @@ Documentación                                     █████████�
 |-----------|--------|---------|
 | `docs/ARCHITECTURE.md` | ✅ | Incluye pgvector, Voyage AI, crypto |
 | `docs/DATA_DICTIONARY.md` | ✅ | v1.8.0 — semantic_tags, embedding |
-| `docs/ESTADO_PROYECTO.md` | ✅ | v1.0.0 (este archivo) |
+| `docs/ESTADO_PROYECTO.md` | ✅ | v1.0.1 (este archivo) |
 | `docs/ROADMAP.md` | ✅ | v1.0.0 |
+| `CLAUDE.md` | ✅ | Arranque automático con @import |
+| `.claude/commands/actualizar-estado.md` | ✅ | Slash command /actualizar-estado |
 
 ### Scripts
 
@@ -329,4 +333,5 @@ cd frontend && npm install && npm run dev
 | 1-2 | 2026-03-25 | Schema inicial, modelos, API admin base, agentes, scheduler esqueleto | `e311eb4` |
 | 3 | 2026-04-04 | RAG + pgvector + Voyage AI (embedding_service), migración 002 | `e311eb4` |
 | 4a | 2026-04-10 | Scheduler completo (8 tareas), encriptación Fernet, zonas/rutas endpoints, frontend productos/rutas | `11d2c58` `6197e35` |
-| 4b | 2026-04-11 | Seed reescrito (40 clientes, 30 productos, 90d historia), migración 003, suite tests (75 tests), CLAUDE.md + docs | `6e4b670` `47db787` |
+| 4b | 2026-04-11 | Seed reescrito (40 clientes, 30 productos, 90d historia), migración 003, suite tests (75 tests) | `6e4b670` `47db787` |
+| 4c | 2026-04-11 | CLAUDE.md + ESTADO_PROYECTO.md + ROADMAP.md + /actualizar-estado + skill 09_project_state_management | `3d765fe` |
