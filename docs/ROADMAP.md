@@ -10,30 +10,31 @@
 | Versión | Fecha      | Cambios |
 |---------|------------|---------|
 | 1.0.0   | 2026-04-11 | Plan inicial basado en estado 72% al cierre sesión 4 |
+| 1.1.0   | 2026-04-11 | Fase 1 completada — P1 todos los ítems ✅ |
 
 ---
 
-## Estado actual: ~72%
+## Estado actual: ~75%
 
-El núcleo funcional está completo: modelos, agentes IA, scheduler, API admin (9 endpoints), webhook WhatsApp, frontend (8 páginas), encriptación, RAG semántico, seed y tests unitarios.
+El núcleo funcional está completo: modelos, agentes IA, scheduler, API admin (9 endpoints), webhook WhatsApp, frontend (8 páginas), encriptación, RAG semántico, seed y tests unitarios. **Fase 1 completada** — el sistema puede levantarse en staging con un tenant real.
 
-**Para ser desplegable en staging con un tenant real: ~85%** (P1 completo).
-**Para producción multi-tenant escalable: 100%** (P1 + P2 + P3 completo).
+**Frente activo: Fase 2** (infraestructura AWS, CI/CD, gestión de tenants).
+**Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---
 
-## Fase 1 — Staging con primer tenant real
+## ✅ Fase 1 — Staging con primer tenant real (COMPLETADA — sesión 5)
 **Objetivo:** levantar el sistema con datos reales de una distribuidora piloto.
 **Criterio de salida:** vendedor recibe briefing por WhatsApp, tendero hace un pedido, gerente recibe reporte por email.
 
-| # | Ítem | Prioridad | Esfuerzo estimado |
-|---|------|-----------|-------------------|
-| 1 | Task Celery de indexación RAG al crear/actualizar producto | Alta | 2h |
-| 2 | Inicializar Sentry en `app/api/main.py` | Media | 30min |
-| 3 | Runbook de deploy a staging (`docs/DEPLOY.md`) | Alta | 3h |
-| 4 | Script de desarrollo con ngrok (`scripts/start_dev.sh`) | Media | 1h |
+| # | Ítem | Estado | Commit |
+|---|------|--------|--------|
+| 1 | Task Celery de indexación RAG al crear/actualizar producto | ✅ | `be73138` |
+| 2 | Inicializar Sentry en `app/api/main.py` | ✅ | `907602b` |
+| 3 | Runbook de deploy a staging (`docs/DEPLOY.md`) | ✅ | `907602b` |
+| 4 | Script de desarrollo con ngrok (`scripts/start_dev.sh`) | ✅ | `907602b` |
 
-**% al completar Fase 1: ~85%**
+**% al completar Fase 1: ~75%** ✅
 
 ---
 
