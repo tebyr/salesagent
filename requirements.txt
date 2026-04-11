@@ -41,6 +41,9 @@ python-multipart==0.0.12
 celery-beat==0.0.1
 django-celery-beat==2.7.0
 
+# Reports
+reportlab==4.2.5
+
 # Utilities
 jinja2==3.1.4
 python-dateutil==2.9.0

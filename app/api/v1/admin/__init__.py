@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.admin import auth, dashboard, salespersons, clients, goals, settings, productos, zonas, rutas
+from app.api.v1.reports import router as reports_router
 
 router = APIRouter(prefix="/admin")
 
@@ -12,3 +13,4 @@ router.include_router(settings.router)
 router.include_router(productos.router)
 router.include_router(zonas.router)
 router.include_router(rutas.router)
+router.include_router(reports_router)
