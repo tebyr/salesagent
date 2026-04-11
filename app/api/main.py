@@ -9,8 +9,47 @@ from app.core.database import init_db
 from app.api.v1.webhooks.whatsapp import router as whatsapp_router
 from app.api.v1.admin import router as admin_router
 import structlog
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
+from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 logger = structlog.get_logger()
+
+
+def _init_sentry() -> None:
+    """
+    Inicializa Sentry si SENTRY_DSN esta configurado.
+    Se llama a nivel de modulo para que el middleware de Sentry
+    quede registrado antes de que FastAPI procese cualquier request.
+    En desarrollo/staging, traces_sample_rate=1.0 para ver todo.
+    En produccion, se reduce a 0.1 para controlar volumen y costos.
+    send_default_pii=False: nunca enviar datos personales (nombres, telefonos) a Sentry.
+    """
+    if not settings.sentry_dsn:
+        return
+
+    traces_sample_rate = 0.1 if settings.is_production else 1.0
+
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn,
+        environment=settings.app_env,
+        traces_sample_rate=traces_sample_rate,
+        send_default_pii=False,
+        integrations=[
+            FastApiIntegration(),
+            SqlalchemyIntegration(),
+            CeleryIntegration(),
+        ],
+    )
+    logger.info(
+        "sentry_initialized",
+        env=settings.app_env,
+        traces_sample_rate=traces_sample_rate,
+    )
+
+
+_init_sentry()
 
 
 @asynccontextmanager

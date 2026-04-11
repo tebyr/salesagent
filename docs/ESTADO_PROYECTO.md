@@ -11,6 +11,7 @@
 |---------|------------|--------|---------|
 | 1.0.0   | 2026-04-11 | 4      | Documento inicial. Estado al cierre del bloque 2 (seed + tests) |
 | 1.0.1   | 2026-04-11 | 4      | +CLAUDE.md, +/actualizar-estado command, +ROADMAP.md, +skill 09_project_state_management |
+| 1.1.0   | 2026-04-11 | 5      | P1 completo: index_product_task, Sentry init, docs/DEPLOY.md, scripts/start_dev.sh |
 
 ---
 
@@ -20,8 +21,8 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 
 **Directorio del proyecto:** `/Users/oscarmauriciogomezacevedo/claudecode/salesagent`
 **Repositorio:** `https://github.com/tebyr/salesagent.git` (rama `master`)
-**Último commit:** `3d765fe` — docs: add project state document, roadmap, CLAUDE.md and /actualizar-estado command
-> ⚠️ 3 commits pendientes de push a `origin/master`
+**Último commit:** `be73138` — feat: implement index_product_task Celery task for RAG indexing
+> ⚠️ 5 commits pendientes de push a `origin/master` (incluyendo Sentry, DEPLOY.md, start_dev.sh y este documento)
 
 ### Stack
 | Capa | Tecnología |
@@ -39,18 +40,18 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 | Infra local | Docker Compose (API + Celery worker + beat + Flower + PG + Redis) |
 | Infra cloud | AWS ECS Fargate + RDS + ElastiCache (pendiente) |
 
-### Avance global: **~72%**
+### Avance global: **~75%**
 
 ```
 Backend core (modelos, DB, API admin, agentes)   ████████████████████  95%
-Scheduler + servicios                             ████████████████████  90%
+Scheduler + servicios                             ████████████████████  95%
 Frontend panel admin                              ████████████████████  90%
 RAG / búsqueda semántica                         ████████████████░░░░  80%
 Tests                                             ████████████░░░░░░░░  60%
 Infraestructura local (Docker)                   ████████████████████  95%
 Infraestructura cloud (AWS)                       ░░░░░░░░░░░░░░░░░░░░   0%
 CI/CD                                             ░░░░░░░░░░░░░░░░░░░░   0%
-Documentación                                     ████████████████░░░░  80%
+Documentación                                     ██████████████████░░  90%
 ```
 
 ---
@@ -65,7 +66,7 @@ Documentación                                     █████████�
 | Base de datos | `app/core/database.py` | ✅ | AsyncSessionLocal, get_db, init_db |
 | Seguridad JWT | `app/core/security.py` | ✅ | hash_password, verify_password, require_roles |
 | Encriptación | `app/core/crypto.py` | ✅ | encrypt_value / decrypt_value Fernet; tolerancia legacy |
-| App principal | `app/api/main.py` | ✅ | Lifespan, CORS, routers registrados |
+| App principal | `app/api/main.py` | ✅ | Lifespan, CORS, routers registrados. Sentry init con FastApi/SQLAlchemy/CeleryIntegration |
 
 ### Backend — Modelos (12 tablas)
 
@@ -149,7 +150,9 @@ Documentación                                     █████████�
 | check_and_send_performance_alerts | Lun-Sáb 11AM y 4PM | ✅ |
 | calculate_product_affinities | Diario 2:00 AM | ✅ |
 | generate_daily_sales_snapshots | Diario 11:55 PM | ✅ |
+| **index_product_task** | On-demand (trigger en create/update producto) | ✅ |
 
+> 🔑 `index_product_task`: bind=True, max_retries=3, delay=60s. ValueError (texto insuficiente) → log warn sin retry. Recibe `product_id` y `tenant_id`.
 > 🔑 Filtro de rutas del día: `operating_days @> '[{weekday}]'::jsonb` (no `Route.date`).
 > 🔑 Todas las tareas usan `decrypt_value(tenant.whatsapp_access_token)` al instanciar WhatsAppService.
 
@@ -210,8 +213,9 @@ Documentación                                     █████████�
 |-----------|--------|---------|
 | `docs/ARCHITECTURE.md` | ✅ | Incluye pgvector, Voyage AI, crypto |
 | `docs/DATA_DICTIONARY.md` | ✅ | v1.8.0 — semantic_tags, embedding |
-| `docs/ESTADO_PROYECTO.md` | ✅ | v1.0.1 (este archivo) |
+| `docs/ESTADO_PROYECTO.md` | ✅ | v1.1.0 (este archivo) |
 | `docs/ROADMAP.md` | ✅ | v1.0.0 |
+| `docs/DEPLOY.md` | ✅ | Runbook completo: clonar, .env, migraciones, seed, Docker, ngrok, smoke tests |
 | `CLAUDE.md` | ✅ | Arranque automático con @import |
 | `.claude/commands/actualizar-estado.md` | ✅ | Slash command /actualizar-estado |
 
@@ -220,6 +224,7 @@ Documentación                                     █████████�
 | Script | Estado | Uso |
 |--------|--------|-----|
 | `scripts/seed_tenant.py` | ✅ | `python scripts/seed_tenant.py` — crea tenant completo con 40 clientes, 30 productos, 90 días historial |
+| `scripts/start_dev.sh` | ✅ | `./scripts/start_dev.sh` — levanta ngrok, obtiene URL pública, muestra instrucciones para configurar webhook en Meta |
 
 ---
 
@@ -244,16 +249,16 @@ Estas decisiones están implementadas y documentadas. No requieren revisión sal
 
 ## 4. Trabajo pendiente (priorizado)
 
-### P1 — Bloqueante para staging con tenant real
+### ✅ P1 — Completado (sesión 4–5)
 
-| # | Tarea | Qué hacer | Archivo(s) a tocar | Dependencias |
-|---|-------|-----------|-------------------|--------------|
-| 1 | **Task de indexación RAG en background** | Crear tarea Celery `index_product_task` que dispare automáticamente cuando se crea/actualiza un producto. Hoy el embedding se genera manualmente. | `app/scheduler/tasks.py` + `app/api/v1/admin/productos.py` | EmbeddingService ✅ |
-| 2 | **Inicializar Sentry en main.py** | `sentry_sdk.init(dsn=settings.sentry_dsn, ...)` en el lifespan de `app/api/main.py`. Está configurado en settings pero nunca se llama. | `app/api/main.py` | Settings ✅ |
-| 3 | **Runbook de deploy a staging** | Script shell + guía paso a paso: clonar repo, configurar `.env`, correr `alembic upgrade head`, levantar Docker Compose, ejecutar seed, verificar webhook ngrok. | `docs/DEPLOY.md` (nuevo) | Docker ✅ |
-| 4 | **Script ngrok para desarrollo** | Script que levanta ngrok y actualiza automáticamente el webhook URL en la configuración de Meta. | `scripts/start_dev.sh` (nuevo) | — |
+| # | Tarea | Estado | Commit |
+|---|-------|--------|--------|
+| 1 | Task de indexación RAG en background (`index_product_task`) | ✅ | `be73138` |
+| 2 | Inicializar Sentry en `app/api/main.py` | ✅ | pendiente commit |
+| 3 | Runbook de deploy a staging (`docs/DEPLOY.md`) | ✅ | pendiente commit |
+| 4 | Script ngrok para desarrollo (`scripts/start_dev.sh`) | ✅ | pendiente commit |
 
-### P2 — Necesario para producción
+### P1 (nuevo) — Bloqueante para producción
 
 | # | Tarea | Qué hacer | Archivo(s) a tocar |
 |---|-------|-----------|-------------------|
@@ -335,3 +340,4 @@ cd frontend && npm install && npm run dev
 | 4a | 2026-04-10 | Scheduler completo (8 tareas), encriptación Fernet, zonas/rutas endpoints, frontend productos/rutas | `11d2c58` `6197e35` |
 | 4b | 2026-04-11 | Seed reescrito (40 clientes, 30 productos, 90d historia), migración 003, suite tests (75 tests) | `6e4b670` `47db787` |
 | 4c | 2026-04-11 | CLAUDE.md + ESTADO_PROYECTO.md + ROADMAP.md + /actualizar-estado + skill 09_project_state_management | `3d765fe` |
+| 5  | 2026-04-11 | P1 completo: index_product_task (RAG), Sentry init en main.py, DEPLOY.md runbook, scripts/start_dev.sh ngrok | `be73138` + pendientes |
