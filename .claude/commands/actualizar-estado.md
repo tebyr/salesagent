@@ -57,6 +57,31 @@ Edita el archivo aplicando **solo los cambios que ocurrieron en esta sesión**:
 - [ ] Fase completada: agregar prefijo `✅` al título de la fase y nota `(COMPLETADA — sesión N)`
 - [ ] Promover siguiente fase: si la fase actual se cerró, marcar la siguiente como frente activo
 
+#### 3c. Revisión rápida de documentación técnica
+
+Ejecutar:
+```bash
+git diff --name-only HEAD~3 HEAD 2>/dev/null || git diff --name-only HEAD 2>/dev/null
+```
+
+Cruzar los archivos modificados en esta sesión contra la columna "Archivos que lo invalidan"
+de `docs/DOCS_MANIFEST.md`.
+
+- Si **ningún doc técnico** fue afectado → no mencionar nada.
+- Si **uno o más docs** podrían estar desactualizados → incluir en el resumen final este bloque:
+
+```
+⚠️  Documentos técnicos posiblemente desactualizados:
+  · [nombre del doc]  ← [archivo de código que cambió]
+
+Ejecuta /mantener-docs para revisarlos y actualizarlos.
+```
+
+No revisar ni editar los docs aquí — solo detectar y avisar.
+No incluir `docs/ESTADO_PROYECTO.md` ni `docs/ROADMAP.md` en esta revisión (son actualizados arriba).
+
+---
+
 ### 4. Confirmar al usuario
 
 Una vez actualizados ambos archivos, mostrar este resumen:
