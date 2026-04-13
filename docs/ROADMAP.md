@@ -14,14 +14,15 @@
 | 1.2.0   | 2026-04-11 | Fase 2: ítems 7 y 9 completados — API tenants + Reports API |
 | 1.2.1   | 2026-04-11 | +docs/formacion/ y docs/go_to_market/ — documentación estratégica y de producto |
 | 1.2.2   | 2026-04-11 | RAG integration en ClientAgent — `_build_rag_recommendations` con graceful degradation |
+| 1.3.0   | 2026-04-12 | Tests de integración completados (ítem 8) + suite completa de documentación técnica |
 
 ---
 
-## Estado actual: ~82%
+## Estado actual: ~87%
 
-Fase 1 completada. En Fase 2: API de gestión de tenants y Reports API completadas. Pendiente: tests de integración, infraestructura AWS y CI/CD (requieren decisiones externas — cuenta AWS, dominio).
+Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports API, tests de integración). Documentación técnica 100% completa. Pendiente: infraestructura AWS y CI/CD (requieren decisiones externas — cuenta AWS, dominio, región).
 
-**Frente activo: Fase 2** — próximo ítem: tests de integración (ítem 8), luego infra AWS (ítem 5) + CI/CD (ítem 6).
+**Frente activo: Fase 2** — próximos ítems: infra AWS (ítem 5) + CI/CD (ítem 6).
 **Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---
@@ -49,7 +50,7 @@ Fase 1 completada. En Fase 2: API de gestión de tenants y Reports API completad
 |---|------|--------|--------|
 | 7 | API gestión de tenants (crear/configurar/suspender desde panel) | ✅ | `7c5f50a` |
 | 9 | Reports API — exportación CSV/PDF ventas, clientes, metas | ✅ | `7682fad` |
-| 8 | Tests de integración contra BD real + cobertura agentes | ⬜ | — |
+| 8 | Tests de integración contra BD real + cobertura agentes | ✅ | `1c0e4a0` |
 | 5 | Infraestructura AWS (ECS Fargate + RDS + ElastiCache + ALB) | ⬜ | — |
 | 6 | Pipeline CI/CD GitHub Actions (lint → test → build → deploy) | ⬜ | — |
 

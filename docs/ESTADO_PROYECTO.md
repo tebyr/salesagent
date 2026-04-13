@@ -15,6 +15,7 @@
 | 1.2.0   | 2026-04-11 | 6      | API platform/tenants (ítem 7) + Reports API CSV/PDF (ítem 9) + seed_platform.py |
 | 1.2.1   | 2026-04-11 | 7      | +docs/formacion/ (guía IA generativa v1.2 + checklist) + docs/go_to_market/ (resumen ejecutivo, KPIs, ROI) |
 | 1.2.2   | 2026-04-11 | 8      | RAG integration en ClientAgent: `_build_rag_recommendations` + firmas backward-compatible + docx actualizado |
+| 1.3.0   | 2026-04-12 | 9      | Tests de integración (ítem 8, 28 tests) + suite completa de docs técnicos + skill `/mantener-docs` |
 
 ---
 
@@ -24,7 +25,7 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 
 **Directorio del proyecto:** `/Users/oscarmauriciogomezacevedo/claudecode/salesagent`
 **Repositorio:** `https://github.com/tebyr/salesagent.git` (rama `master`)
-**Último commit:** `f2aab57` — docs: actualizar estado del proyecto v1.2.1 *(pendiente commit: client_agent.py RAG + docx)*
+**Último commit:** `7608082` — docs: add full documentation suite + mantener-docs skill
 
 ### Stack
 | Capa | Tecnología |
@@ -42,18 +43,18 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 | Infra local | Docker Compose (API + Celery worker + beat + Flower + PG + Redis) |
 | Infra cloud | AWS ECS Fargate + RDS + ElastiCache (pendiente) |
 
-### Avance global: **~82%**
+### Avance global: **~87%**
 
 ```
 Backend core (modelos, DB, API admin, agentes)   ████████████████████  98%
 Scheduler + servicios                             ████████████████████  95%
 Frontend panel admin                              ████████████████████  90%
 RAG / búsqueda semántica                         █████████████████░░░  85%
-Tests                                             ████████████░░░░░░░░  60%
+Tests                                             ████████████████░░░░  75%
 Infraestructura local (Docker)                   ████████████████████  95%
 Infraestructura cloud (AWS)                       ░░░░░░░░░░░░░░░░░░░░   0%
 CI/CD                                             ░░░░░░░░░░░░░░░░░░░░   0%
-Documentación                                     ██████████████████░░  90%
+Documentación                                     ████████████████████ 100%
 ```
 
 ---
@@ -214,10 +215,12 @@ Documentación                                     █████████�
 | `tests/test_services/test_order_service.py` | 8 | ✅ |
 | `tests/test_api/test_webhook.py` | 9 | ✅ |
 | `tests/test_scheduler/test_tasks.py` | 13 | ✅ |
-| Agentes (SalesAgent, ClientAgent, ManagementAgent) | — | ⬜ |
-| ConversationService | — | ⬜ |
-| AnalyticsService | — | ⬜ |
-| Tests de integración (BD real) | — | ⬜ |
+| `tests/integration/conftest.py` | — fixtures BD real (SAVEPOINT) | ✅ |
+| `tests/integration/test_conversation_service.py` | 7 | ✅ |
+| `tests/integration/test_analytics_service.py` | 6 | ✅ |
+| `tests/integration/test_agents_sales.py` | 5 | ✅ |
+| `tests/integration/test_agents_client.py` | 6 | ✅ |
+| `tests/integration/test_agents_management.py` | 4 | ✅ |
 
 ### Documentación
 
@@ -225,16 +228,24 @@ Documentación                                     █████████�
 |-----------|--------|---------|
 | `docs/ARCHITECTURE.md` | ✅ | Incluye pgvector, Voyage AI, crypto |
 | `docs/DATA_DICTIONARY.md` | ✅ | v1.8.0 — semantic_tags, embedding |
-| `docs/ESTADO_PROYECTO.md` | ✅ | v1.2.1 (este archivo) |
+| `docs/ESTADO_PROYECTO.md` | ✅ | v1.3.0 (este archivo) |
+| `docs/ROADMAP.md` | ✅ | v1.3.0 |
+| `docs/DEPLOY.md` | ✅ | Runbook completo: clonar, .env, migraciones, seed, Docker, ngrok, smoke tests |
+| `docs/TESTING.md` | ✅ | Guía completa: unitarios, integración, SAVEPOINT, convenciones |
+| `docs/ONBOARDING.md` | ✅ | Modelo mental, flujos, mapa de archivos, convenciones |
+| `docs/SECURITY.md` | ✅ | JWT, Fernet, HMAC, roles, multi-tenancy, LFPDP Colombia |
+| `docs/OPS.md` | ✅ | Runbook operacional: logs, operaciones manuales, Celery, Sentry |
+| `docs/TENANT_ONBOARDING.md` | ✅ | 8 pasos para incorporar nueva distribuidora |
+| `docs/API_REFERENCE.md` | ✅ | Todos los endpoints con request/response y ejemplos |
+| `docs/DOCS_MANIFEST.md` | ✅ | Manifiesto docs ↔ código para skill /mantener-docs |
 | `docs/formacion/guia_ia_generativa_consultoria_v1.2.md` | ✅ | Guía de estudio IA generativa para consultoría |
 | `docs/formacion/checklist_avance_roadmap.md` | ✅ | Checklist de avance del roadmap |
 | `docs/go_to_market/Agente_Comercial_IA_Resumen_Ejecutivo.docx` | ✅ | Resumen ejecutivo del producto para stakeholders |
 | `docs/go_to_market/bateria_indicadores_kpi.md` | ✅ | Batería de indicadores KPI |
 | `docs/go_to_market/marco_roi_monetizacion.md` | ✅ | Marco de ROI y monetización |
-| `docs/ROADMAP.md` | ✅ | v1.0.0 |
-| `docs/DEPLOY.md` | ✅ | Runbook completo: clonar, .env, migraciones, seed, Docker, ngrok, smoke tests |
 | `CLAUDE.md` | ✅ | Arranque automático con @import |
-| `.claude/commands/actualizar-estado.md` | ✅ | Slash command /actualizar-estado |
+| `.claude/commands/actualizar-estado.md` | ✅ | Slash command /actualizar-estado (incluye paso 3c) |
+| `~/.claude/commands/mantener-docs.md` | ✅ | Skill global reutilizable /mantener-docs |
 
 ### Scripts
 
@@ -284,11 +295,16 @@ Estas decisiones están implementadas y documentadas. No requieren revisión sal
 | 7 | API gestión de tenants (`/api/v1/platform/tenants/`) | ✅ | `7c5f50a` |
 | 9 | Reports API — ventas/clientes/metas CSV+PDF | ✅ | `7682fad` |
 
+### ✅ P1 ex-P2 — Tests de integración completados (sesión 9)
+
+| # | Tarea | Estado | Commit |
+|---|-------|--------|--------|
+| 8 | Tests de integración (28 tests, BD real, agentes, servicios) | ✅ | `1c0e4a0` |
+
 ### P1 — Bloqueante para producción (frente activo)
 
 | # | Tarea | Qué hacer | Archivo(s) a tocar |
 |---|-------|-----------|-------------------|
-| 8 | **Tests de integración** | Tests contra BD real (PostgreSQL), cobertura de agentes, ConversationService, AnalyticsService. | `tests/integration/` (nuevo) |
 | 5 | **Infraestructura AWS** | Terraform o CDK: ECS Fargate (API + Celery), RDS PostgreSQL 16 con pgvector, ElastiCache Redis, ALB, S3. Requiere decisiones externas (cuenta AWS, dominio, región). | `infra/` (nuevo) |
 | 6 | **CI/CD GitHub Actions** | Pipeline: lint (ruff), tests (pytest), build Docker, push ECR, deploy ECS. Depende de ítem 5. | `.github/workflows/` (nuevo) |
 
@@ -367,4 +383,5 @@ cd frontend && npm install && npm run dev
 | 5  | 2026-04-11 | P1 completo: index_product_task (RAG), Sentry init en main.py, DEPLOY.md runbook, scripts/start_dev.sh ngrok | `be73138` `907602b` |
 | 6  | 2026-04-11 | API platform/tenants CRUD (ítem 7) + Reports API CSV+PDF ventas/clientes/metas (ítem 9) + seed_platform.py | `7c5f50a` `7682fad` |
 | 7  | 2026-04-11 | docs/formacion/ + docs/go_to_market/ — 5 archivos de estrategia y formación | `377c7f6` |
-| 8  | 2026-04-11 | RAG integration ClientAgent: `_build_rag_recommendations` (top-3 cat + search_products), backward-compat, graceful degradation. Docx go_to_market actualizado. | pendiente commit |
+| 8  | 2026-04-11 | RAG integration ClientAgent: `_build_rag_recommendations` (top-3 cat + search_products), backward-compat, graceful degradation. Docx go_to_market actualizado. | `a86cb8c` |
+| 9  | 2026-04-12 | Tests de integración (ítem 8, 28 tests): ConversationService, AnalyticsService, SalesAgent, ClientAgent, ManagementAgent. Suite completa de docs técnicos (7 docs). Skill `/mantener-docs` global. | `1c0e4a0` `7608082` |
