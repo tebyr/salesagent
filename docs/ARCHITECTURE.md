@@ -94,6 +94,7 @@ El orquestador (`app/agents/orchestrator.py`) es el único punto de entrada para
 - Identifica el tenant por `whatsapp_phone_number_id`
 - Busca el remitente en `users` y `clients` del tenant
 - Lee el estado de `wa_conversations`
+- **[Solo vendedores]** Enriquece `user_info` con métricas del día vía `AnalyticsService.get_salesperson_today_context()` — agrega `month_goal_pct`, `today_sales`, `week_sales`, `priority_clients` (top 8 por días sin compra), `top_products` (top 5 por revenue 60d). Degradación graceful: si falla, el agente continúa con valores "N/A".
 - Llama al sub-agente correspondiente
 - Persiste la respuesta y actualiza el estado
 - Maneja fallbacks si el sub-agente falla

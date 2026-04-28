@@ -4,6 +4,7 @@
 
 | Version | Fecha      | Descripcion                                                                         | Autor               |
 |---------|------------|-------------------------------------------------------------------------------------|---------------------|
+| 1.9.1   | 2026-04-28 | `tenants` agrega `security_config` JSONB: timeout e warning de sesion del panel web, configurables por tenant. Migración 005. | Diseño colaborativo |
 | 1.8.0   | 2026-04-04 | RAG con pgvector: `products` agrega `semantic_tags` JSONB (sinonimos, terminos de canal, contexto de uso, estrategia, atributos) y `embedding` VECTOR(1024) para busqueda semantica de productos via Voyage AI voyage-3. Los embeddings se generan de forma asincrona via Celery (campo NULL hasta que el worker procese la tarea) | Diseño colaborativo |
 | 1.0.0   | 2026-03-31 | Version inicial — modelo completo de dominio                                        | Diseño colaborativo |
 | 1.1.0   | 2026-03-31 | Agrega `delivery_days` y `delivery_cutoff_time` en `routes`; nueva tabla `goal_benefits` | Diseño colaborativo |
@@ -101,6 +102,7 @@ Representa a cada empresa distribuidora que contrata el SaaS. Es la raiz del ais
 | `country_code`               | CHAR(2)        | NN            | 1.0.0 | Codigo ISO 3166-1 del pais (ej. `CO`). Determina formato de facturacion     |
 | `currency_code`              | CHAR(3)        | NN            | 1.0.0 | Codigo ISO 4217 de moneda (ej. `COP`). Usado en todos los valores monetarios|
 | `is_active`                  | BOOLEAN        | NN            | 1.0.0 | Indica si el tenant esta habilitado. Tenants inactivos no procesan mensajes  |
+| `security_config`            | JSONB          |               | 1.9.1 | Configuracion de seguridad del panel web. Default: `{"session_timeout_minutes": 30, "session_warning_minutes": 2}`. Permite parametrizar el cierre de sesion por inactividad por tenant |
 | `created_at`                 | TIMESTAMPTZ    | NN            | 1.0.0 | Fecha y hora de creacion del registro                                       |
 | `updated_at`                 | TIMESTAMPTZ    | NN            | 1.0.0 | Fecha y hora de la ultima modificacion                                      |
 

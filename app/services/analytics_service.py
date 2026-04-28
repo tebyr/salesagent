@@ -337,6 +337,14 @@ class AnalyticsService:
 
         today = date_type.today()
 
+        from datetime import timedelta
+
+        # Calcular rangos de fechas
+        month_start = today.replace(day=1)
+        week_start = today - timedelta(days=today.weekday())          # Lunes de esta semana
+        last_week_start = week_start - timedelta(days=7)              # Lunes semana pasada
+        last_week_end = week_start - timedelta(days=1)                # Domingo semana pasada
+
         async with AsyncSessionLocal() as db:
             # 1. Meta mensual: % de avance
             goal_data = await self.get_salesperson_goal_progress(
@@ -346,27 +354,43 @@ class AnalyticsService:
             pct = goal_data.get("pct_amount", 0)
             month_goal_pct = f"{pct:.1f}%"
 
-            # 2. Ventas de hoy (ordenes confirmadas/despachadas/entregadas)
-            today_sales_result = await db.execute(
-                select(func.sum(Order.total_amount)).where(
-                    and_(
-                        Order.tenant_id == self.tenant_id,
-                        Order.salesperson_id == salesperson_id,
-                        Order.order_date == today,
-                        Order.status.in_([
-                            OrderStatus.CONFIRMED,
-                            OrderStatus.DISPATCHED,
-                            OrderStatus.DELIVERED,
-                        ])
+            confirmed_statuses = [
+                OrderStatus.CONFIRMED,
+                OrderStatus.DISPATCHED,
+                OrderStatus.DELIVERED,
+            ]
+
+            async def _sum_orders(date_from, date_to) -> float:
+                r = await db.execute(
+                    select(func.coalesce(func.sum(Order.total_amount), 0)).where(
+                        and_(
+                            Order.tenant_id == self.tenant_id,
+                            Order.salesperson_id == salesperson_id,
+                            Order.order_date >= date_from,
+                            Order.order_date <= date_to,
+                            Order.status.in_(confirmed_statuses),
+                        )
                     )
                 )
-            )
-            today_amount = today_sales_result.scalar() or 0.0
+                return float(r.scalar())
+
+            # 2. Ventas de hoy
+            today_amount = await _sum_orders(today, today)
             today_sales = f"${today_amount:,.0f}"
 
-            # 3. Clientes en ruta hoy — RouteVisit JOIN Route por salesperson_id
-            # RouteVisit no tiene visit_date ni salesperson_id directos.
-            # Se filtra por created_at::date == today y JOIN a Route para salesperson.
+            # 3. Ventas semana actual (lunes a hoy)
+            week_amount = await _sum_orders(week_start, today)
+            week_sales = f"${week_amount:,.0f}"
+
+            # 4. Ventas semana pasada (lunes anterior a domingo anterior)
+            last_week_amount = await _sum_orders(last_week_start, last_week_end)
+            last_week_sales = f"${last_week_amount:,.0f}"
+
+            # 5. Ventas mes actual
+            month_amount = await _sum_orders(month_start, today)
+            month_sales = f"${month_amount:,.0f}"
+
+            # 6. Clientes en ruta hoy — RouteVisit JOIN Route por salesperson_id
             from app.models.route import VisitStatus
             from sqlalchemy import cast as sa_cast, Date as SADate
 
@@ -383,7 +407,7 @@ class AnalyticsService:
             )
             clients_today = clients_today_result.scalar() or 0
 
-            # 4. Visitas realizadas hoy: visited_at::date == today y estado de contacto
+            # 7. Visitas realizadas hoy
             visited_today_result = await db.execute(
                 select(func.count(RouteVisit.id))
                 .join(Route, RouteVisit.route_id == Route.id)
@@ -403,11 +427,96 @@ class AnalyticsService:
             )
             visited_today = visited_today_result.scalar() or 0
 
+        # 8. Top clientes: los asignados a este vendedor con más días sin comprar (priorizarlos)
+        from app.models.client import Client
+        from app.models.order import Order as OrderModel
+        from sqlalchemy import cast as sa_cast2
+        import uuid as _uuid
+
+        priority_clients_info = []
+        top_products_info = []
+
+        try:
+            async with AsyncSessionLocal() as db2:
+                # Clientes del vendedor con días sin comprar (top 5 más desatendidos de segmento A/B/C)
+                clients_result = await db2.execute(
+                    select(Client)
+                    .where(
+                        and_(
+                            Client.tenant_id == self.tenant_id,
+                            Client.salesperson_id == salesperson_id,
+                            Client.is_active == True,
+                        )
+                    )
+                    .order_by(Client.last_purchase_date.asc().nullsfirst())
+                    .limit(8)
+                )
+                clients_raw = clients_result.scalars().all()
+                for c in clients_raw:
+                    days = (
+                        (today - c.last_purchase_date).days
+                        if c.last_purchase_date else 999
+                    )
+                    priority_clients_info.append({
+                        "name": c.business_name or c.owner_name or "Sin nombre",
+                        "segment": c.segment or "C",
+                        "days_without_purchase": days,
+                        "avg_ticket": f"${c.avg_ticket_amount:,.0f}" if c.avg_ticket_amount else "N/A",
+                        "zone": c.zone_name or "Sin zona",
+                    })
+
+                # Top 5 productos más vendidos por este vendedor (últimos 60 días)
+                from app.models.order import OrderItem
+                sixty_days_ago = today - timedelta(days=60)
+                top_prod_result = await db2.execute(
+                    select(
+                        OrderItem.product_id,
+                        func.sum(OrderItem.quantity).label("total_qty"),
+                        func.sum(OrderItem.total_price).label("total_revenue"),
+                    )
+                    .join(OrderModel, OrderItem.order_id == OrderModel.id)
+                    .where(
+                        and_(
+                            OrderModel.tenant_id == self.tenant_id,
+                            OrderModel.salesperson_id == salesperson_id,
+                            OrderModel.order_date >= sixty_days_ago,
+                        )
+                    )
+                    .group_by(OrderItem.product_id)
+                    .order_by(desc("total_revenue"))
+                    .limit(5)
+                )
+                top_prod_rows = top_prod_result.all()
+
+                if top_prod_rows:
+                    from app.models.product import Product
+                    prod_ids = [r[0] for r in top_prod_rows]
+                    prods_result = await db2.execute(
+                        select(Product).where(Product.id.in_(prod_ids))
+                    )
+                    prods_map = {str(p.id): p for p in prods_result.scalars().all()}
+                    for row in top_prod_rows:
+                        prod = prods_map.get(str(row[0]))
+                        if prod:
+                            top_products_info.append({
+                                "name": prod.name,
+                                "category": prod.category or "General",
+                                "units_sold_60d": int(row[1]),
+                                "revenue_60d": f"${row[2]:,.0f}",
+                            })
+        except Exception as e:
+            logger.warning("context_clients_products_failed", error=str(e))
+
         return {
             "month_goal_pct": month_goal_pct,
             "today_sales": today_sales,
+            "week_sales": week_sales,
+            "last_week_sales": last_week_sales,
+            "month_sales": month_sales,
             "clients_today": clients_today,
             "visited_today": visited_today,
+            "priority_clients": priority_clients_info,   # top clientes sin compra reciente
+            "top_products": top_products_info,           # productos más vendidos (60 días)
         }
 
     def _generate_route_alerts(self, all_clients: list, priority_clients: list) -> list:

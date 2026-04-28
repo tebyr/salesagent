@@ -52,6 +52,12 @@ class Tenant(UUIDMixin, TimestampMixin, Base):
         "from_name": None,        # Si None, usa agent_name
     })
 
+    # Configuracion de seguridad del panel admin (solo editable por admins)
+    security_config = Column(JSON, default={
+        "session_timeout_minutes": 30,   # Minutos de inactividad antes de cerrar sesion
+        "session_warning_minutes": 2,    # Minutos de aviso antes del cierre
+    })
+
     # Plan SaaS
     plan = Column(String(50), default="starter", nullable=False)  # starter | professional | enterprise
     max_salespersons = Column(Integer, default=50)

@@ -421,8 +421,8 @@ async def seed(company: str, admin_email: str, admin_password: str):
 
         for client_obj, zone_key, sp in client_list:
             freq = client_obj.avg_purchase_frequency_days or 14
-            # Generar fechas de compra hacia atras desde hoy
-            order_date = today - timedelta(days=rng.randint(2, freq))
+            # Generar fechas de compra hacia atras desde hoy (incluye pedidos recientes 0-2 días)
+            order_date = today - timedelta(days=rng.randint(0, min(2, freq)))
             total_amount_accum = 0.0
             purchase_count = 0
 

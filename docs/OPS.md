@@ -87,6 +87,7 @@ aws logs tail /ecs/salesagent-api --follow --filter-pattern "ERROR"
 | `message_processed` | Mensaje de WhatsApp procesado correctamente |
 | `tenant_not_found` | Llegó un webhook de un número de teléfono no registrado |
 | `whatsapp_send_failed` | Error enviando mensaje — revisar token del tenant |
+| `salesperson_context_enrichment_failed` | `AnalyticsService.get_salesperson_today_context()` falló — el agente continuó sin métricas enriquecidas. Verificar BD y revisar el stack trace en Sentry. |
 
 ---
 

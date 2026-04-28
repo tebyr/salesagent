@@ -19,6 +19,7 @@
 | `docs/OPS.md` | Operaciones, comandos de mantenimiento, Celery | `app/scheduler/tasks.py`, `docker-compose.yml`, `app/services/*.py` | Cuando se agreguen tareas Celery, servicios o comandos operacionales nuevos |
 | `docs/TENANT_ONBOARDING.md` | Proceso de incorporar un nuevo tenant | `scripts/seed_platform.py`, `app/api/v1/platform/tenants.py`, `app/api/v1/admin/*.py` | Cuando cambie el proceso de onboarding, los endpoints de configuración o los scripts de seed |
 | `docs/API_REFERENCE.md` | Todos los endpoints REST del sistema | `app/api/v1/admin/*.py`, `app/api/v1/platform/*.py`, `app/api/v1/reports/*.py`, `app/api/v1/webhooks/*.py` | Cuando se agregue, modifique o elimine un endpoint |
+| `docs/BEST_PRACTICES_WEBHOOK_AI.md` | Best practices para webhook y agentes IA: selección de modelo, gestión de tokens, contexto, caché, latencia, costos | `app/agents/*.py`, `app/services/analytics_service.py`, `app/api/v1/webhooks/whatsapp.py`, `app/scheduler/tasks.py`, `app/core/config.py` | **Modo acumulativo:** cuando se corrija un bug, se implemente una optimización o se establezca un nuevo patrón → agregar la lección aprendida a la sección correspondiente sin eliminar lo existente |
 | `docs/ESTADO_PROYECTO.md` | Estado vivo del proyecto | — | Actualizado automáticamente por `/actualizar-estado` al cierre de sesión |
 | `docs/ROADMAP.md` | Plan de fases y pendientes | — | Actualizado automáticamente por `/actualizar-estado` al cierre de sesión |
 

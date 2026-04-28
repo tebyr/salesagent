@@ -52,3 +52,12 @@ tests/data/*.xlsx
 # Credenciales locales — NUNCA commitear
 CREDENTIALS_LOCAL.md
 docs/CREDENTIALS_LOCAL.md
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Frontend — build artifacts y dependencias
+frontend/.next/
+frontend/node_modules/
+frontend/tsconfig.tsbuildinfo

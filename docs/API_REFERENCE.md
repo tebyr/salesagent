@@ -301,11 +301,40 @@ Lista rutas con filtros opcionales.
 
 ### GET `/admin/goals`
 
-Lista metas con filtros opcionales.
+Lista metas con filtros opcionales. Incluye progreso calculado en tiempo real para el período activo.
 
 **Roles:** admin, manager
 
-**Query params:** `salesperson_id`, `period_type`, `year`, `month`, `is_active`
+**Query params:** `salesperson_id`, `period_type`, `period_start`, `is_active`
+
+**Response 200 (estructura de cada elemento):**
+```json
+{
+  "id": "uuid",
+  "salesperson_id": "uuid",
+  "salesperson_name": "Carlos Méndez",
+  "period_type": "monthly",
+  "period_start": "2026-05-01",
+  "period_end": "2026-05-31",
+  "target_amount": 15000000.0,
+  "target_visits": 100,
+  "target_effective_visits": 70,
+  "target_new_clients": null,
+  "target_active_clients": 35,
+  "is_active": true,
+  "notes": null,
+  "progress": {
+    "actual_amount": 8200000.0,
+    "actual_visits": 47,
+    "actual_new_clients": 3,
+    "pct_amount": 54.7,
+    "pct_visits": 47.0,
+    "projected_amount": 12900000.0
+  }
+}
+```
+
+> ℹ️ `progress` se calcula en tiempo real durante el período activo. `projected_amount` usa proyección lineal basada en días transcurridos.
 
 ### POST `/admin/goals`
 
@@ -349,22 +378,39 @@ Crea metas para múltiples vendedores en un solo request.
 
 ### GET `/admin/settings`
 
-Retorna la configuración actual del tenant (horarios, WhatsApp, emails).
+Retorna la configuración actual del tenant (horarios, WhatsApp, emails, seguridad).
 
-**Roles:** admin
+**Roles:** admin, manager
+
+**Response 200 (campos relevantes):**
+```json
+{
+  "whatsapp_config": {
+    "phone_number_id": "464348050089416",
+    "business_account_id": "437820632749495",
+    "phone_display": "+1 555 135 3681"
+  },
+  "security_config": {
+    "session_timeout_minutes": 30,
+    "session_warning_minutes": 2
+  }
+}
+```
+
+> ⚠️ `access_token` y `app_secret` **nunca se incluyen** en la respuesta — son campos de solo escritura.
 
 ### PATCH `/admin/settings`
 
 Actualiza configuración general (nombre del agente, color, etc.).
 
-**Roles:** admin
+**Roles:** admin, manager
 
 ### PUT `/admin/settings/whatsapp`
 
 Configura o actualiza las credenciales de WhatsApp Business.
 El `access_token` se encripta con Fernet antes de guardarse.
 
-**Roles:** admin
+**Roles:** admin, manager
 
 **Request:**
 ```json
@@ -377,11 +423,14 @@ El `access_token` se encripta con Fernet antes de guardarse.
 }
 ```
 
+> ℹ️ `access_token` es **opcional**: si se envía vacío (`""`) o se omite, el token guardado no cambia.
+> Usar `POST /settings/test-whatsapp` para verificar el token antes de guardarlo.
+
 ### PUT `/admin/settings/schedule`
 
 Actualiza los horarios de notificaciones automáticas.
 
-**Roles:** admin
+**Roles:** admin, manager
 
 **Request:**
 ```json
@@ -395,11 +444,27 @@ Actualiza los horarios de notificaciones automáticas.
 }
 ```
 
+### PUT `/admin/settings/security`
+
+Actualiza la configuración de seguridad del panel web (tiempo de inactividad de sesión).
+
+**Roles:** admin, manager
+
+**Request:**
+```json
+{
+  "session_timeout_minutes": 60,
+  "session_warning_minutes": 5
+}
+```
+
+**Response 200:** objeto `TenantSettingsOut` actualizado
+
 ### POST `/admin/settings/test-whatsapp`
 
 Envía un mensaje de prueba al número especificado para verificar la conexión.
 
-**Roles:** admin
+**Roles:** admin, manager
 
 **Request:**
 ```json

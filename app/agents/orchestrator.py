@@ -105,11 +105,44 @@ class AgentOrchestrator:
         self, name: str, message: str, conversation_state: dict, user_info: dict
     ) -> dict:
         """Maneja mensajes de vendedores."""
+        from datetime import date as _date
+        _today = _date.today()
+        _day_names = ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"]
+        _day_name = _day_names[_today.weekday()]
+        _days_in_week = _today.weekday() + 1   # 1 = lunes, 2 = martes … 6 = sábado
+
+        # --- Formatear clientes prioritarios ---
+        priority_clients = user_info.get("priority_clients", [])
+        if priority_clients:
+            clients_lines = "\n".join(
+                f"  • {c['name']} ({c['segment']}) — {c['days_without_purchase']}d sin comprar | "
+                f"ticket prom: {c['avg_ticket']} | zona: {c['zone']}"
+                for c in priority_clients[:5]
+            )
+        else:
+            clients_lines = "  (sin datos de clientes)"
+
+        # --- Formatear top productos ---
+        top_products = user_info.get("top_products", [])
+        if top_products:
+            products_lines = "\n".join(
+                f"  • {p['name']} ({p['category']}) — {p['units_sold_60d']} uds / {p['revenue_60d']} en 60 días"
+                for p in top_products
+            )
+        else:
+            products_lines = "  (sin datos de productos)"
+
         context_data = {
-            "Meta mensual": user_info.get("month_goal_pct", "N/A"),
+            "Fecha y día": f"{_today.strftime('%d/%m/%Y')} ({_day_name})",
+            "Meta mensual (% avance)": user_info.get("month_goal_pct", "N/A"),
+            "Ventas mes actual": user_info.get("month_sales", "N/A"),
+            f"Ventas semana actual ({_days_in_week} día(s) transcurridos)": user_info.get("week_sales", "N/A"),
+            "Ventas semana pasada": user_info.get("last_week_sales", "N/A"),
             "Ventas hoy": user_info.get("today_sales", "N/A"),
             "Clientes en ruta hoy": user_info.get("clients_today", "N/A"),
-            "Clientes visitados": user_info.get("visited_today", "N/A"),
+            "Clientes visitados hoy": user_info.get("visited_today", "N/A"),
+            "Clientes sin compra reciente (priorizar visita)": clients_lines,
+            "Productos más vendidos por ti (últimos 60 días)": products_lines,
         }
 
         history = conversation_state.get("recent_messages", [])

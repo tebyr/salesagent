@@ -10,11 +10,10 @@ import {
 } from "lucide-react";
 
 interface Client {
-  id: string; name: string; phone: string; address: string | null;
+  id: string; business_name: string; phone: string; address: string | null;
   zone: string | null; segment: string | null; salesperson_id: string | null;
-  salesperson_name: string | null; is_active: boolean; whatsapp_opt_in: boolean;
-  credit_limit: number | null; overdue_balance: number | null;
-  last_purchase_date: string | null; purchase_frequency_days: number | null;
+  is_active: boolean; whatsapp_opt_in: boolean;
+  last_purchase_date: string | null; avg_purchase_frequency_days: number | null;
   days_since_last_purchase: number | null;
 }
 
@@ -25,13 +24,12 @@ function ClientModal({
 }: { client?: Client | null; onClose: () => void; salespersons: Vendor[] }) {
   const qc = useQueryClient();
   const [form, setForm] = useState({
-    name: client?.name || "",
+    business_name: client?.business_name || "",
     phone: client?.phone || "",
     address: client?.address || "",
     zone: client?.zone || "",
     segment: client?.segment || "regular",
     salesperson_id: client?.salesperson_id || "",
-    credit_limit: client?.credit_limit?.toString() || "",
     whatsapp_opt_in: client?.whatsapp_opt_in ?? true,
   });
   const [saving, setSaving] = useState(false);
@@ -42,13 +40,12 @@ function ClientModal({
     setError("");
     try {
       const payload: Record<string, unknown> = {
-        name: form.name,
+        business_name: form.business_name,
         phone: form.phone,
         address: form.address || null,
         zone: form.zone || null,
         segment: form.segment,
         salesperson_id: form.salesperson_id || null,
-        credit_limit: form.credit_limit ? parseFloat(form.credit_limit) : null,
         whatsapp_opt_in: form.whatsapp_opt_in,
       };
       if (client) await updateClient(client.id, payload);
@@ -74,7 +71,7 @@ function ClientModal({
         </div>
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           {[
-            { label: "Nombre del negocio *", key: "name", type: "text", placeholder: "Tienda El Progreso" },
+            { label: "Nombre del negocio *", key: "business_name", type: "text", placeholder: "Tienda El Progreso" },
             { label: "Teléfono (WhatsApp) *", key: "phone", type: "tel", placeholder: "3001234567" },
             { label: "Dirección", key: "address", type: "text", placeholder: "Cra 15 #23-45" },
             { label: "Zona", key: "zone", type: "text", placeholder: "Norte, Sur, Centro..." },
@@ -90,30 +87,18 @@ function ClientModal({
               />
             </div>
           ))}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Segmento</label>
-              <select
-                value={form.segment}
-                onChange={(e) => setForm({ ...form, segment: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="vip">VIP</option>
-                <option value="regular">Regular</option>
-                <option value="occasional">Ocasional</option>
-                <option value="inactive">Inactivo</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-slate-600 mb-1">Límite de crédito</label>
-              <input
-                type="number"
-                value={form.credit_limit}
-                onChange={(e) => setForm({ ...form, credit_limit: e.target.value })}
-                placeholder="0"
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Segmento</label>
+            <select
+              value={form.segment}
+              onChange={(e) => setForm({ ...form, segment: e.target.value })}
+              className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="vip">VIP</option>
+              <option value="regular">Regular</option>
+              <option value="occasional">Ocasional</option>
+              <option value="inactive">Inactivo</option>
+            </select>
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600 mb-1">Vendedor asignado</label>
@@ -147,7 +132,7 @@ function ClientModal({
           </button>
           <button
             onClick={handleSave}
-            disabled={saving || !form.name || !form.phone}
+            disabled={saving || !form.business_name || !form.phone}
             className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center gap-2"
           >
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -189,7 +174,7 @@ export default function ClientsPage() {
   });
 
   const filtered = clients.filter((c: Client) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.business_name.toLowerCase().includes(search.toLowerCase()) ||
     c.phone.includes(search) ||
     (c.address || "").toLowerCase().includes(search.toLowerCase()) ||
     (c.zone || "").toLowerCase().includes(search.toLowerCase())
@@ -317,12 +302,12 @@ export default function ClientsPage() {
                 return (
                   <tr key={c.id} className="hover:bg-slate-50">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-slate-900">{c.name}</p>
+                      <p className="font-medium text-slate-900">{c.business_name}</p>
                       {c.address && <p className="text-xs text-slate-400 mt-0.5">{c.address}</p>}
                     </td>
                     <td className="px-4 py-3 text-slate-600">{c.phone}</td>
                     <td className="px-4 py-3 text-slate-500">{c.zone || "—"}</td>
-                    <td className="px-4 py-3 text-slate-600 text-xs">{c.salesperson_name || "—"}</td>
+                    <td className="px-4 py-3 text-slate-600 text-xs">—</td>
                     <td className="px-4 py-3">
                       <span className={`px-2 py-0.5 text-xs rounded-full ${seg.color}`}>
                         {seg.label}

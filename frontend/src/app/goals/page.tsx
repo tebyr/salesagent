@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGoals, createGoal, updateGoal, deleteGoal, bulkCreateGoals, getVendors } from "@/lib/api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
@@ -448,8 +448,8 @@ export default function GoalsPage() {
                 const pct = g.progress?.pct_amount || 0;
                 const isExpanded = expandedRows.has(g.id);
                 return (
-                  <>
-                    <tr key={g.id} className="hover:bg-slate-50">
+                  <React.Fragment key={g.id}>
+                    <tr className="hover:bg-slate-50">
                       <td className="px-4 py-3 font-medium text-slate-900">{g.salesperson_name || "—"}</td>
                       <td className="px-4 py-3 text-slate-500 text-xs">
                         <span className="px-2 py-0.5 bg-slate-100 rounded-full">{PERIOD_LABELS[g.period_type]}</span>
@@ -510,7 +510,7 @@ export default function GoalsPage() {
                       </td>
                     </tr>
                     {isExpanded && g.progress && (
-                      <tr key={`${g.id}-detail`} className="bg-slate-50">
+                      <tr className="bg-slate-50">
                         <td colSpan={8} className="px-4 py-3">
                           <div className="grid grid-cols-3 gap-6 text-sm">
                             <div>
@@ -545,7 +545,7 @@ export default function GoalsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </React.Fragment>
                 );
               })}
             </tbody>

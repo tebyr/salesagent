@@ -37,6 +37,9 @@ Meta Cloud API
 webhooks/whatsapp.py
     │  verifica firma HMAC-SHA256
     │  lanza BackgroundTask
+    │  [si role=salesperson] AnalyticsService.get_salesperson_today_context()
+    │    → enriquece user_info: month_goal_pct, week_sales, today_sales,
+    │      priority_clients (top 8), top_products (top 5 últimos 60d)
     ▼
 AgentOrchestrator.process_inbound_message()
     │  ConversationService.get_or_create_conversation()

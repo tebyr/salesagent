@@ -14,6 +14,11 @@ import uuid
 router = APIRouter(prefix="/settings", tags=["Admin - Configuracion"])
 
 
+class SecurityConfig(BaseModel):
+    session_timeout_minutes: int = 30
+    session_warning_minutes: int = 2
+
+
 class TenantSettingsOut(BaseModel):
     id: str
     name: str
@@ -24,8 +29,10 @@ class TenantSettingsOut(BaseModel):
     logo_url: Optional[str]
     whatsapp_phone_display: Optional[str]
     whatsapp_configured: bool
+    whatsapp_config: dict          # campos no sensibles: phone_number_id, business_account_id, phone_display
     schedule_config: dict
     email_config: dict
+    security_config: dict
     plan: str
 
 
@@ -42,7 +49,7 @@ class TenantSettingsUpdate(BaseModel):
 class WhatsAppConfig(BaseModel):
     phone_number_id: str
     business_account_id: str
-    access_token: str
+    access_token: Optional[str] = None   # si viene vacío, se conserva el token existente
     phone_display: str
 
 
@@ -89,11 +96,13 @@ async def configure_whatsapp(
 ):
     """Configura las credenciales de WhatsApp Business para el tenant."""
     tenant = await _get_tenant(current_user["tenant_id"], db)
-    from app.core.crypto import encrypt_value
     tenant.whatsapp_phone_number_id = data.phone_number_id
     tenant.whatsapp_business_account_id = data.business_account_id
-    tenant.whatsapp_access_token = encrypt_value(data.access_token)
     tenant.whatsapp_phone_display = data.phone_display
+    # Solo actualizar el token si se envió uno nuevo (no vacío)
+    if data.access_token and data.access_token.strip():
+        from app.core.crypto import encrypt_value
+        tenant.whatsapp_access_token = encrypt_value(data.access_token.strip())
     await db.flush()
     return _tenant_to_out(tenant)
 
@@ -107,6 +116,29 @@ async def update_schedule(
     """Actualiza los horarios de las notificaciones automaticas."""
     tenant = await _get_tenant(current_user["tenant_id"], db)
     tenant.schedule_config = data.model_dump()
+    await db.flush()
+    return _tenant_to_out(tenant)
+
+
+@router.put("/security", response_model=TenantSettingsOut)
+async def update_security_config(
+    data: SecurityConfig,
+    current_user: dict = Depends(require_roles("admin", "manager")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Actualiza la configuracion de seguridad del panel. Solo administradores y managers."""
+    if data.session_warning_minutes >= data.session_timeout_minutes:
+        raise HTTPException(
+            status_code=400,
+            detail="El tiempo de aviso debe ser menor que el tiempo de cierre de sesion",
+        )
+    if data.session_timeout_minutes < 5:
+        raise HTTPException(status_code=400, detail="El tiempo minimo de inactividad es 5 minutos")
+    if data.session_warning_minutes < 1:
+        raise HTTPException(status_code=400, detail="El tiempo minimo de aviso es 1 minuto")
+
+    tenant = await _get_tenant(current_user["tenant_id"], db)
+    tenant.security_config = data.model_dump()
     await db.flush()
     return _tenant_to_out(tenant)
 
@@ -157,7 +189,14 @@ def _tenant_to_out(t: Tenant) -> TenantSettingsOut:
         logo_url=t.logo_url,
         whatsapp_phone_display=t.whatsapp_phone_display,
         whatsapp_configured=bool(t.whatsapp_phone_number_id and t.whatsapp_access_token),
+        # Campos no sensibles de WhatsApp para pre-poblar el formulario. El access_token NO se devuelve.
+        whatsapp_config={
+            "phone_number_id": t.whatsapp_phone_number_id or "",
+            "business_account_id": t.whatsapp_business_account_id or "",
+            "phone_display": t.whatsapp_phone_display or "",
+        },
         schedule_config=t.schedule_config or {},
         email_config=t.email_config or {},
+        security_config=t.security_config or {"session_timeout_minutes": 30, "session_warning_minutes": 2},
         plan=t.plan,
     )
