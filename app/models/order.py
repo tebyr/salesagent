@@ -38,8 +38,8 @@ class Order(UUIDMixin, TimestampMixin, Base):
     order_date = Column(Date, nullable=False, index=True)
     delivery_date = Column(Date, nullable=True)
 
-    status = Column(SAEnum(OrderStatus), default=OrderStatus.PENDING, nullable=False, index=True)
-    source = Column(SAEnum(OrderSource), default=OrderSource.SALESPERSON, nullable=False)
+    status = Column(SAEnum(OrderStatus, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), default=OrderStatus.PENDING, nullable=False, index=True)
+    source = Column(SAEnum(OrderSource, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), default=OrderSource.SALESPERSON, nullable=False)
 
     # Montos en COP
     subtotal = Column(Float, default=0.0, nullable=False)

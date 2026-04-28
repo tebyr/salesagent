@@ -13,6 +13,7 @@ pgvector==0.3.2
 # AI
 anthropic==0.40.0
 voyageai==0.3.2
+litellm>=1.40.0,<2.0.0
 
 # Cache & Queue
 redis==5.1.1
@@ -35,11 +36,10 @@ phonenumbers==8.13.47
 # Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
 python-multipart==0.0.12
 
-# Scheduling
-celery-beat==0.0.1
-django-celery-beat==2.7.0
+# Scheduling — beat viene incluido en celery, no requiere paquete adicional
 
 # Reports
 reportlab==4.2.5

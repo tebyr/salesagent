@@ -35,7 +35,7 @@ class NotificationSchedule(UUIDMixin, TimestampMixin, Base):
 
     tenant_id = Column(PGUUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
 
-    event_type = Column(SAEnum(NotificationEventType), nullable=False)
+    event_type = Column(SAEnum(NotificationEventType, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
 
     # Horario (cron expression o hora simple)
@@ -60,7 +60,7 @@ class NotificationLog(UUIDMixin, Base):
     tenant_id = Column(PGUUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
     schedule_id = Column(PGUUID(as_uuid=True), ForeignKey("notification_schedules.id"), nullable=True)
 
-    event_type = Column(SAEnum(NotificationEventType), nullable=False, index=True)
+    event_type = Column(SAEnum(NotificationEventType, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False, index=True)
     recipient_phone = Column(String(20), nullable=False)
     recipient_type = Column(String(20), nullable=False)  # salesperson | client | manager
     recipient_id = Column(PGUUID(as_uuid=True), nullable=True)

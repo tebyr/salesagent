@@ -108,6 +108,29 @@ async def _process_webhook_payload(payload: dict):
                 )
                 continue
 
+            # Serializar el objeto ORM a dict para el orquestador
+            conversation_dict = {
+                "state": conversation.state.value if conversation else "idle",
+                "recent_messages": list(conversation.recent_messages or []),
+                "context": dict(conversation.context or {}),
+            }
+
+            # Enriquecer user_info con metricas del dia para vendedores
+            if user_info.get("role") in ("salesperson", "supervisor", "admin"):
+                try:
+                    from app.services.analytics_service import AnalyticsService
+                    analytics = AnalyticsService(str(tenant.id))
+                    today_ctx = await analytics.get_salesperson_today_context(
+                        salesperson_id=user_info["salesperson_id"]
+                    )
+                    user_info.update(today_ctx)
+                except Exception as enrich_err:
+                    logger.warning(
+                        "salesperson_context_enrichment_failed",
+                        error=str(enrich_err),
+                        phone=sender_phone,
+                    )
+
             # Procesar con el orquestador
             tenant_config = {
                 "name": tenant.name,
@@ -120,7 +143,7 @@ async def _process_webhook_payload(payload: dict):
             result = await orchestrator.process_inbound_message(
                 phone=sender_phone,
                 message_text=text,
-                conversation_state=conversation,
+                conversation_state=conversation_dict,
                 user_info=user_info,
             )
 

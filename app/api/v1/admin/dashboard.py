@@ -3,7 +3,7 @@ Dashboard del panel admin: KPIs en tiempo real del tenant.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, cast as sa_cast, Date as SADate, text as sa_text
 from datetime import date, timedelta
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -68,6 +68,7 @@ async def get_dashboard_kpis(
     """KPIs principales del tenant para el dashboard."""
     tenant_id = current_user["tenant_id"]
     today = date.today()
+    weekday = today.isoweekday()  # 1=Lun, 6=Sáb
     month_start = today.replace(day=1)
     last_month_start = (month_start - timedelta(days=1)).replace(day=1)
     last_month_end = month_start - timedelta(days=1)
@@ -109,16 +110,17 @@ async def get_dashboard_kpis(
     # Vendedores
     r = await db.execute(
         select(func.count()).where(
-            and_(User.tenant_id == tenant_id, User.role == UserRole.VENDOR,
+            and_(User.tenant_id == tenant_id, User.role == UserRole.SALESPERSON,
                  User.is_active == True)
         )
     )
     total_salespersons = r.scalar()
 
-    # Vendedores con ruta hoy (activos)
+    # Vendedores con ruta hoy (activos) — operating_days @> '[weekday]'
     r = await db.execute(
         select(func.count(func.distinct(Route.salesperson_id))).where(
-            and_(Route.tenant_id == tenant_id, Route.date == today)
+            and_(Route.tenant_id == tenant_id, Route.is_active == True,
+                 sa_text(f"routes.operating_days @> '[{weekday}]'::jsonb"))
         )
     )
     active_salespersons_today = r.scalar()
@@ -141,25 +143,25 @@ async def get_dashboard_kpis(
     )
     active_clients_month = r.scalar()
 
-    # Visitas hoy
+    # Visitas hoy — created_at::date == today
     r = await db.execute(
-        select(func.count()).where(
+        select(func.count()).select_from(RouteVisit).join(Route, RouteVisit.route_id == Route.id).where(
             and_(RouteVisit.tenant_id == tenant_id,
-                 Route.date == today)
-        ).join(Route, RouteVisit.route_id == Route.id)
+                 sa_cast(RouteVisit.created_at, SADate) == today)
+        )
     )
     visits_planned = r.scalar()
 
     r = await db.execute(
-        select(func.count()).where(
+        select(func.count()).select_from(RouteVisit).join(Route, RouteVisit.route_id == Route.id).where(
             and_(RouteVisit.tenant_id == tenant_id,
+                 sa_cast(RouteVisit.created_at, SADate) == today,
                  RouteVisit.status.in_([
                      VisitStatus.VISITED_SALE,
                      VisitStatus.VISITED_NO_SALE,
-                     VisitStatus.AGENT_SALE,
                  ])
             )
-        ).join(Route, RouteVisit.route_id == Route.id).where(Route.date == today)
+        )
     )
     visits_completed = r.scalar()
 
@@ -182,7 +184,7 @@ async def get_dashboard_kpis(
     if team_month_goal > 0:
         r = await db.execute(
             select(User.id).where(
-                and_(User.tenant_id == tenant_id, User.role == UserRole.VENDOR,
+                and_(User.tenant_id == tenant_id, User.role == UserRole.SALESPERSON,
                      User.is_active == True)
             )
         )
@@ -250,10 +252,11 @@ async def get_salespersons_performance(
     today = date.today()
     month_start = today.replace(day=1)
     confirmed_statuses = [OrderStatus.CONFIRMED, OrderStatus.DISPATCHED, OrderStatus.DELIVERED]
+    weekday = today.isoweekday()
 
     result = await db.execute(
         select(User).where(
-            and_(User.tenant_id == tenant_id, User.role == UserRole.VENDOR,
+            and_(User.tenant_id == tenant_id, User.role == UserRole.SALESPERSON,
                  User.is_active == True)
         ).order_by(User.name)
     )
@@ -292,20 +295,20 @@ async def get_salespersons_performance(
         month_pct = (sales_month / month_goal * 100) if month_goal > 0 else 0
 
         r = await db.execute(
-            select(func.count()).where(
-                and_(RouteVisit.tenant_id == tenant_id)
-            ).join(Route, RouteVisit.route_id == Route.id).where(
-                and_(Route.salesperson_id == vid, Route.date == today)
+            select(func.count()).select_from(RouteVisit).join(Route, RouteVisit.route_id == Route.id).where(
+                and_(RouteVisit.tenant_id == tenant_id,
+                     sa_cast(RouteVisit.created_at, SADate) == today,
+                     Route.salesperson_id == vid)
             )
         )
         visits_today = r.scalar()
 
         r = await db.execute(
-            select(func.count()).where(
+            select(func.count()).select_from(RouteVisit).join(Route, RouteVisit.route_id == Route.id).where(
                 and_(RouteVisit.tenant_id == tenant_id,
-                     RouteVisit.status == VisitStatus.VISITED_SALE)
-            ).join(Route, RouteVisit.route_id == Route.id).where(
-                and_(Route.salesperson_id == vid, Route.date == today)
+                     sa_cast(RouteVisit.created_at, SADate) == today,
+                     RouteVisit.status == VisitStatus.VISITED_SALE,
+                     Route.salesperson_id == vid)
             )
         )
         sales_visits = r.scalar()

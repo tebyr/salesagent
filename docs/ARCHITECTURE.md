@@ -18,12 +18,14 @@ El agente actúa como capa de inteligencia y comunicación entre tres actores:
 
 | Componente        | Tecnologia                            | Justificacion                                    |
 |-------------------|---------------------------------------|--------------------------------------------------|
-| Backend API       | Python 3.11 + FastAPI                 | Async nativo, alto rendimiento, tipado fuerte    |
-| Base de datos     | PostgreSQL 15 (AWS RDS)               | Multi-tenant, ACID, JSONB para configs flexibles |
+| Backend API       | Python 3.12 + FastAPI                 | Async nativo, alto rendimiento, tipado fuerte    |
+| Base de datos     | PostgreSQL 16 + pgvector              | Multi-tenant, ACID, JSONB + búsqueda vectorial   |
 | Cache / Queue     | Redis (AWS ElastiCache)               | Estado conversaciones + Celery broker            |
-| AI - Simple       | Claude Haiku 4.5                      | Notificaciones rutinarias (menor costo)          |
-| AI - Estandar     | Claude Sonnet 4.6                     | Recomendaciones, respuestas reactivas            |
-| AI - Complejo     | Claude Opus 4.6                       | Reportes gerenciales (máxima calidad)            |
+| AI - Capa         | **LiteLLM ≥ 1.40** (provider-agnostic)| Cambiar proveedor = cambiar env var; sin tocar código |
+| AI - Simple       | `groq/llama-3.1-8b-instant` (dev) · `claude-haiku-*` (prod) | Notificaciones rutinarias (menor costo) |
+| AI - Estandar     | `groq/llama-3.3-70b-versatile` (dev) · `claude-sonnet-*` (prod) | Recomendaciones, respuestas reactivas |
+| AI - Complejo     | `groq/llama-3.3-70b-versatile` (dev) · `claude-opus-*` (prod) | Reportes gerenciales (máxima calidad) |
+| AI - Costos       | `AIUsageLog` en BD                    | Trazabilidad por tenant; umbrales mensuales alertables |
 | WhatsApp          | Meta Cloud API (oficial)              | Sin costo de plataforma, escalable               |
 | Email             | SendGrid                              | Reportes gerenciales HTML                        |
 | Scheduler         | Celery + Celery Beat                  | Tareas programadas y en background               |
@@ -67,10 +69,12 @@ Mensaje WhatsApp
        └───────────┴───────────┘
                    │
        ┌───────────▼──────────────┐
-       │       Claude API         │
-       │   Haiku / Sonnet / Opus  │
-       │   (selección dinámica    │
-       │    por complejidad)      │
+       │         LiteLLM          │
+       │  (provider-agnostic)     │
+       │  Groq / Anthropic /      │
+       │  OpenAI / Google...      │
+       │  (selección dinámica     │
+       │   por complejidad)       │
        └───────────┬──────────────┘
                    │
        ┌───────────▼──────────────┐
@@ -90,6 +94,7 @@ El orquestador (`app/agents/orchestrator.py`) es el único punto de entrada para
 - Identifica el tenant por `whatsapp_phone_number_id`
 - Busca el remitente en `users` y `clients` del tenant
 - Lee el estado de `wa_conversations`
+- **[Solo vendedores]** Enriquece `user_info` con métricas del día vía `AnalyticsService.get_salesperson_today_context()` — agrega `month_goal_pct`, `today_sales`, `week_sales`, `priority_clients` (top 8 por días sin compra), `top_products` (top 5 por revenue 60d). Degradación graceful: si falla, el agente continúa con valores "N/A".
 - Llama al sub-agente correspondiente
 - Persiste la respuesta y actualiza el estado
 - Maneja fallbacks si el sub-agente falla
@@ -102,7 +107,7 @@ Cada sub-agente (`app/agents/sales_agent.py`, `client_agent.py`, `management_age
 - Carga únicamente el contexto relevante para su rol (no toda la BD)
 - Devuelve `(texto_respuesta, nuevo_estado)` al orquestador
 - Es **stateless**: el estado lo gestiona el orquestador
-- Selecciona el modelo Claude según la complejidad de la tarea
+- Selecciona el modelo vía LiteLLM según la complejidad de la tarea (`AI_MODEL_SIMPLE/STANDARD/COMPLEX` en `.env`)
 
 ---
 
@@ -328,27 +333,31 @@ Cada tenant configura sus propios templates en `tenants.whatsapp_phone_number_id
 
 ### Selección de modelo por tarea
 
-| Tarea | Modelo | Tokens est. | Costo/mensaje |
-|---|---|---|---|
-| Notificación pre-visita | Haiku 4.5 | ~500 | ~$0.0005 |
-| Resumen diario vendedor | Haiku 4.5 | ~400 | ~$0.0004 |
-| Clasificación de intención | Haiku 4.5 | ~200 | ~$0.0002 |
-| Briefing matutino vendedor | Sonnet 4.6 | ~1.000 | ~$0.003 |
-| Reporte rendimiento vendedor | Sonnet 4.6 | ~1.500 | ~$0.0045 |
-| Respuesta reactiva compleja | Sonnet 4.6 | ~800 | ~$0.0024 |
-| Reporte gerencial email | Opus 4.6 | ~5.000 | ~$0.025 |
+La capa es **LiteLLM** — el nombre del modelo se configura en `.env` (`AI_MODEL_SIMPLE/STANDARD/COMPLEX`). Por defecto en desarrollo se usa Groq (gratuito). En producción apuntar a Claude.
 
-**Estimación mensual por tenant (40 vendedores, 3.000 clientes):**
+| Tarea | Tier | Modelo dev (Groq) | Modelo prod (Anthropic) |
+|---|---|---|---|
+| Notificación pre-visita | Simple | llama-3.1-8b-instant | claude-haiku-* |
+| Resumen diario vendedor | Simple | llama-3.1-8b-instant | claude-haiku-* |
+| Clasificación de intención | Simple | llama-3.1-8b-instant | claude-haiku-* |
+| Briefing matutino vendedor | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Reporte rendimiento vendedor | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Respuesta reactiva compleja | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Reporte gerencial email | Complejo | llama-3.3-70b-versatile | claude-opus-* |
+
+**Estimación mensual por tenant en producción (40 vendedores, 3.000 clientes, con Claude):**
 - Proactivo diario: ~$15-25/mes en AI
 - Mensajes reactivos (estimado): ~$5-10/mes
 - Reportes gerenciales: ~$2-5/mes
 - **Total AI: ~$25-40/mes por tenant**
 
+Todos los costos se registran en `ai_usage_logs` por tenant. Umbrales configurables: `AI_COST_ALERT_THRESHOLD_USD` (warning) y `AI_COST_HARD_LIMIT_USD` (error en logs).
+
 ### Regla de fallback de modelo
 
 ```
-Si Sonnet falla → reintentar con Haiku (respuesta degradada pero entregada)
-Si Opus falla → reintentar con Sonnet (reporte menos profundo pero disponible)
+Si el modelo estándar falla → reintentar con el modelo simple (respuesta degradada pero entregada)
+Si el modelo complejo falla → reintentar con el estándar (reporte menos profundo pero disponible)
 Registrar toda degradación en logs para análisis de calidad
 ```
 
@@ -446,7 +455,11 @@ app/
 │   └── management_agent.py  # Lógica agente gerencia
 ├── api/
 │   └── v1/
-│       ├── webhook.py       # Endpoint webhook Meta
+│       ├── webhooks/
+│       │   └── whatsapp.py  # Endpoint webhook Meta (GET verify + POST mensajes)
+│       ├── platform/
+│       │   └── tenants.py   # API super-admin SaaS (gestión de tenants)
+│       ├── reports/         # Reports CSV + PDF (ventas, clientes, metas)
 │       └── admin/           # Panel de administración
 │           ├── auth.py
 │           ├── dashboard.py
@@ -454,7 +467,7 @@ app/
 │           ├── clients.py
 │           ├── goals.py
 │           └── settings.py
-├── models/                  # SQLAlchemy models
+├── models/                  # SQLAlchemy models (16 tablas)
 │   ├── tenant.py
 │   ├── user.py
 │   ├── client.py
@@ -464,17 +477,23 @@ app/
 │   ├── goal.py
 │   ├── conversation.py
 │   ├── notification.py
-│   └── analytics.py
+│   ├── analytics.py
+│   └── ai_usage.py          # AIUsageLog — trazabilidad de costos IA por tenant
 ├── scheduler/
-│   └── tasks.py             # Tareas Celery programadas
+│   └── tasks.py             # Tareas Celery programadas (11 tareas)
 ├── services/
 │   ├── whatsapp_service.py  # Meta Cloud API
 │   ├── analytics_service.py # KPIs y recomendaciones
+│   ├── embedding_service.py # Voyage AI + pgvector
+│   ├── conversation_service.py # Estado de conversaciones WA
+│   ├── order_service.py     # Creación y consulta de pedidos
+│   ├── tenant_service.py    # Lookup de tenants por número WA
 │   └── email_service.py     # SendGrid
 └── core/
-    ├── config.py            # Settings desde .env
+    ├── config.py            # Settings desde .env (API keys opcionales)
     ├── database.py          # Engine async SQLAlchemy
-    └── security.py          # JWT, hashing
+    ├── security.py          # JWT, hash_password, require_roles
+    └── crypto.py            # encrypt/decrypt Fernet
 
 docs/
 ├── ARCHITECTURE.md          # Este documento
@@ -515,7 +534,7 @@ Para cada tenant se necesita:
 - Integración ERP via external_id/external_source
 
 ### v2.0 (Siguiente)
-- Panel web de administración completo (Next.js)
+- ✅ Panel web de administración (Next.js) — operativo en localhost:3000
 - Integración ERP en tiempo real (Siesa, World Office) via webhook
 - Georeferenciación y optimización de rutas
 - Gestión de cartera y cobros

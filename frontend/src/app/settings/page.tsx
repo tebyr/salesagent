@@ -1,25 +1,27 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import Cookies from "js-cookie";
 import {
   getTenantSettings, updateTenantSettings,
   updateWhatsAppConfig, testWhatsAppConnection,
-  updateScheduleConfig,
+  updateScheduleConfig, updateSecurityConfig,
 } from "@/lib/api";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import {
   Loader2, Save, CheckCircle, XCircle, Phone, Bell,
-  Building2, Settings2, ChevronRight,
+  Building2, Settings2, ChevronRight, ShieldCheck,
 } from "lucide-react";
 
-type TabId = "general" | "whatsapp" | "schedule" | "notifications";
+type TabId = "general" | "whatsapp" | "schedule" | "notifications" | "security";
 
-const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
+const BASE_TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: "general", label: "General", icon: Building2 },
   { id: "whatsapp", label: "WhatsApp", icon: Phone },
   { id: "schedule", label: "Horarios", icon: Bell },
   { id: "notifications", label: "Avanzado", icon: Settings2 },
 ];
+const SECURITY_TAB = { id: "security" as TabId, label: "Seguridad", icon: ShieldCheck };
 
 function SaveButton({ loading, saved }: { loading: boolean; saved: boolean }) {
   return (
@@ -147,17 +149,29 @@ function GeneralTab({ settings }: { settings: Record<string, unknown> }) {
 function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
   const wa = (settings.whatsapp_config as Record<string, string>) || {};
   const [form, setForm] = useState({
-    phone_number_id: wa.phone_number_id || "",
-    waba_id: wa.waba_id || "",
-    access_token: wa.access_token || "",
-    webhook_verify_token: wa.webhook_verify_token || "",
-    phone_number: wa.phone_number || "",
+    phone_number_id: "",
+    business_account_id: "",
+    access_token: "",
+    phone_display: "",
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   const [error, setError] = useState("");
+
+  // Pre-poblar el formulario cuando llegan los datos del servidor
+  useEffect(() => {
+    if (wa.phone_number_id || wa.business_account_id || wa.phone_display) {
+      setForm({
+        phone_number_id: wa.phone_number_id || "",
+        business_account_id: wa.business_account_id || "",
+        access_token: "",          // El token nunca se devuelve por seguridad
+        phone_display: wa.phone_display || "",
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wa.phone_number_id, wa.business_account_id, wa.phone_display]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -166,9 +180,12 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
     try {
       await updateWhatsAppConfig(form);
       setSaved(true);
+      // Limpiar token después de guardar exitosamente
+      setForm((f) => ({ ...f, access_token: "" }));
       setTimeout(() => setSaved(false), 3000);
-    } catch {
-      setError("Error guardando configuración de WhatsApp");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setError(detail || "Error guardando configuración de WhatsApp");
     } finally {
       setSaving(false);
     }
@@ -179,16 +196,22 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
     setTestResult(null);
     try {
       const res = await testWhatsAppConnection();
-      setTestResult({ ok: true, message: res.message || "Conexión exitosa" });
-    } catch {
-      setTestResult({ ok: false, message: "No se pudo conectar. Verifica las credenciales." });
+      // Meta devuelve { status, phone_info: { verified_name, display_phone_number, quality_rating } }
+      const info = res.phone_info;
+      const detail = info
+        ? `${info.verified_name} · ${info.display_phone_number} · Calidad: ${info.quality_rating}`
+        : "Conexión exitosa";
+      setTestResult({ ok: true, message: detail });
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setTestResult({ ok: false, message: detail || "No se pudo conectar. Verifica las credenciales." });
     } finally {
       setTesting(false);
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-1">
+    <form onSubmit={handleSubmit} className="space-y-1" autoComplete="off">
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
         <p className="text-sm text-blue-800 font-medium">Configuración de Meta WhatsApp Business</p>
         <p className="text-xs text-blue-700 mt-1">
@@ -202,35 +225,39 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
           value={form.phone_number_id}
           onChange={(e) => setForm({ ...form, phone_number_id: e.target.value })}
           placeholder="123456789012345"
+          autoComplete="off"
         />
       </FieldGroup>
       <FieldGroup label="WABA ID" description="ID de la cuenta de WhatsApp Business">
         <Input
-          value={form.waba_id}
-          onChange={(e) => setForm({ ...form, waba_id: e.target.value })}
+          value={form.business_account_id}
+          onChange={(e) => setForm({ ...form, business_account_id: e.target.value })}
           placeholder="987654321098765"
+          autoComplete="off"
         />
       </FieldGroup>
-      <FieldGroup label="Access Token" description="Token de acceso permanente de la API">
+      <FieldGroup
+        label="Access Token"
+        description={
+          settings.whatsapp_configured
+            ? "Token actual guardado — ingresa uno nuevo solo si necesitas actualizarlo"
+            : "Token de acceso de la API (caduca cada 24h en sandbox)"
+        }
+      >
         <Input
           type="password"
           value={form.access_token}
           onChange={(e) => setForm({ ...form, access_token: e.target.value })}
-          placeholder="EAAxxxxxxxx..."
+          placeholder={settings.whatsapp_configured ? "••••••••  (dejar vacío para conservar)" : "EAAxxxxxxxx..."}
+          autoComplete="new-password"
         />
       </FieldGroup>
-      <FieldGroup label="Webhook Verify Token" description="Token para verificar el webhook">
+      <FieldGroup label="Número de teléfono" description="Número visible al usuario (ej: +57 300 123 4567)">
         <Input
-          value={form.webhook_verify_token}
-          onChange={(e) => setForm({ ...form, webhook_verify_token: e.target.value })}
-          placeholder="mi_token_secreto"
-        />
-      </FieldGroup>
-      <FieldGroup label="Número de teléfono" description="Número con código de país (sin +)">
-        <Input
-          value={form.phone_number}
-          onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-          placeholder="573001234567"
+          value={form.phone_display}
+          onChange={(e) => setForm({ ...form, phone_display: e.target.value })}
+          placeholder="+57 300 123 4567"
+          autoComplete="off"
         />
       </FieldGroup>
 
@@ -456,8 +483,111 @@ function AdvancedTab({ settings }: { settings: Record<string, unknown> }) {
   );
 }
 
+function SecurityTab({ settings }: { settings: Record<string, unknown> }) {
+  const qc = useQueryClient();
+  const sec = (settings.security_config as Record<string, number>) || {};
+  const [form, setForm] = useState({
+    session_timeout_minutes: sec.session_timeout_minutes ?? 30,
+    session_warning_minutes: sec.session_warning_minutes ?? 2,
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (form.session_warning_minutes >= form.session_timeout_minutes) {
+      setError("El aviso debe ser menor que el tiempo de cierre.");
+      return;
+    }
+    if (form.session_timeout_minutes < 5) {
+      setError("El tiempo mínimo de inactividad es 5 minutos.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await updateSecurityConfig({
+        session_timeout_minutes: form.session_timeout_minutes,
+        session_warning_minutes: form.session_warning_minutes,
+      });
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch {
+      setError("Error guardando configuración de seguridad.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit}>
+      <div className="flex items-center gap-3 mb-6 p-3 bg-blue-50 rounded-xl border border-blue-100">
+        <ShieldCheck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+        <p className="text-sm text-blue-800">
+          Controla cuánto tiempo puede estar el panel inactivo antes de cerrar la sesión automáticamente.
+        </p>
+      </div>
+
+      <FieldGroup
+        label="Tiempo de inactividad"
+        description="Minutos sin actividad antes de cerrar la sesión (mín. 5)"
+      >
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={5}
+            max={480}
+            value={form.session_timeout_minutes}
+            onChange={(e) => setForm({ ...form, session_timeout_minutes: parseInt(e.target.value) || 5 })}
+            className="w-24 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-500">minutos</span>
+        </div>
+      </FieldGroup>
+
+      <FieldGroup
+        label="Aviso anticipado"
+        description="Minutos antes del cierre en que aparece el modal de aviso (mín. 1)"
+      >
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={1}
+            max={form.session_timeout_minutes - 1}
+            value={form.session_warning_minutes}
+            onChange={(e) => setForm({ ...form, session_warning_minutes: parseInt(e.target.value) || 1 })}
+            className="w-24 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          <span className="text-sm text-slate-500">minutos</span>
+        </div>
+      </FieldGroup>
+
+      <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-500">
+        Con la configuración actual, el aviso aparecerá a los{" "}
+        <span className="font-semibold text-slate-700">
+          {form.session_timeout_minutes - form.session_warning_minutes} minutos
+        </span>{" "}
+        de inactividad y la sesión cerrará a los{" "}
+        <span className="font-semibold text-slate-700">{form.session_timeout_minutes} minutos</span>.
+      </div>
+
+      {error && <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-lg mt-4">{error}</p>}
+      <div className="flex justify-end pt-4">
+        <SaveButton loading={saving} saved={saved} />
+      </div>
+    </form>
+  );
+}
+
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("general");
+
+  const userRole = Cookies.get("user_role");
+  // "manager" es el rol administrador del tenant; "admin" es el super-admin de plataforma
+  const isAdmin = userRole === "admin" || userRole === "manager";
+  const TABS = isAdmin ? [...BASE_TABS, SECURITY_TAB] : BASE_TABS;
 
   const { data: settings = {}, isLoading } = useQuery({
     queryKey: ["settings"],
@@ -481,6 +611,7 @@ export default function SettingsPage() {
       case "whatsapp": return <WhatsAppTab settings={s} />;
       case "schedule": return <ScheduleTab settings={s} />;
       case "notifications": return <AdvancedTab settings={s} />;
+      case "security": return isAdmin ? <SecurityTab settings={s} /> : null;
     }
   };
 

@@ -82,6 +82,25 @@ def upgrade() -> None:
     op.create_index("ix_users_external_id", "users", ["external_id"])
 
     # ------------------------------------------------------------------ #
+    # ZONES — debe crearse antes de CLIENTS (FK zone_id → zones.id)
+    # ------------------------------------------------------------------ #
+    op.create_table(
+        "zones",
+        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
+                  server_default=sa.text("gen_random_uuid()")),
+        sa.Column("created_at", sa.DateTime(timezone=True),
+                  server_default=sa.text("now()"), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True),
+                  server_default=sa.text("now()"), onupdate=sa.text("now()"), nullable=False),
+        sa.Column("tenant_id", postgresql.UUID(as_uuid=True),
+                  sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
+        sa.Column("name", sa.String(200), nullable=False),
+        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
+    )
+    op.create_index("ix_zones_tenant_id", "zones", ["tenant_id"])
+
+    # ------------------------------------------------------------------ #
     # CLIENTS (tenderos)
     # ------------------------------------------------------------------ #
     op.create_table(
@@ -189,25 +208,6 @@ def upgrade() -> None:
         sa.UniqueConstraint("tenant_id", "product_id", name="uq_inventory_tenant_product"),
     )
     op.create_index("ix_inventory_tenant_id", "inventory", ["tenant_id"])
-
-    # ------------------------------------------------------------------ #
-    # ZONES
-    # ------------------------------------------------------------------ #
-    op.create_table(
-        "zones",
-        sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True,
-                  server_default=sa.text("gen_random_uuid()")),
-        sa.Column("created_at", sa.DateTime(timezone=True),
-                  server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True),
-                  server_default=sa.text("now()"), onupdate=sa.text("now()"), nullable=False),
-        sa.Column("tenant_id", postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("name", sa.String(200), nullable=False),
-        sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("is_active", sa.Boolean(), nullable=False, server_default="true"),
-    )
-    op.create_index("ix_zones_tenant_id", "zones", ["tenant_id"])
 
     # ------------------------------------------------------------------ #
     # ROUTES

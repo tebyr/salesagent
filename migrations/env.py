@@ -5,6 +5,10 @@ import asyncio
 import os
 from logging.config import fileConfig
 
+# Cargar variables de entorno desde .env antes de cualquier otra importacion
+from dotenv import load_dotenv
+load_dotenv()
+
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config

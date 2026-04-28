@@ -295,20 +295,8 @@ OFERTAS ACTIVAS:
             system=system_with_context,
         )
 
-        # Procesar tool calls si las hay
-        tool_calls = []
-        text_response = ""
-
-        for block in response.content:
-            if block.type == "text":
-                text_response += block.text
-            elif block.type == "tool_use":
-                tool_calls.append({
-                    "tool": block.name,
-                    "input": block.input,
-                    "id": block.id,
-                })
-
+        # Extraer texto y tool calls desde respuesta LiteLLM (formato OpenAI)
+        text_response, tool_calls = self._extract_content_and_tools(response)
         return text_response, tool_calls
 
     async def generate_order_confirmation(

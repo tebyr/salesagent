@@ -46,7 +46,8 @@ Editar `.env` con las credenciales reales. Tabla de referencia:
 | `APP_ENV` | `development` / `staging` / `production` | Editar manualmente |
 | `APP_SECRET_KEY` | Llave aleatoria para firmado interno | `openssl rand -hex 32` |
 | `DATABASE_URL` | Conexión asyncpg a PostgreSQL | Dejar valor por defecto para Docker local |
-| `ANTHROPIC_API_KEY` | Llave de la API de Claude | [console.anthropic.com](https://console.anthropic.com) |
+| `GROQ_API_KEY` | Llave Groq para dev gratuito (reemplaza Anthropic en dev) | [console.groq.com](https://console.groq.com) — tier gratuito disponible |
+| `ANTHROPIC_API_KEY` | Llave Claude para producción (opcional en dev) | [console.anthropic.com](https://console.anthropic.com) |
 | `VOYAGE_API_KEY` | Llave para embeddings RAG | [dash.voyageai.com](https://dash.voyageai.com) |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | Token arbitrario para verificar webhook Meta | Inventar (ej. `openssl rand -hex 16`) |
 | `WHATSAPP_APP_SECRET` | App Secret de la app Meta | Meta for Developers → App → Settings → Basic |
@@ -92,7 +93,7 @@ docker compose logs redis
 # Instalar dependencias Python localmente (para ejecutar alembic fuera de Docker)
 pip install -r requirements.txt
 
-# Aplicar las 3 migraciones en orden
+# Aplicar las 4 migraciones en orden
 alembic upgrade head
 ```
 
@@ -101,10 +102,11 @@ Output esperado:
 INFO  [alembic.runtime.migration] Running upgrade  -> 001_initial_schema
 INFO  [alembic.runtime.migration] Running upgrade 001 -> 002_add_pgvector
 INFO  [alembic.runtime.migration] Running upgrade 002 -> 003_sync_schema_with_models
+INFO  [alembic.runtime.migration] Running upgrade 003 -> 004_add_ai_usage_logs
 ```
 
-> ⚠️ Siempre correr `alembic upgrade head` (las 3 migraciones). Nunca aplicar `001` sola;
-> la migración 003 contiene deltas críticos que sincronizan el schema con los modelos actuales.
+> ⚠️ Siempre correr `alembic upgrade head` (las 4 migraciones). Nunca aplicar `001` sola;
+> las migraciones 003 y 004 contienen deltas críticos para el schema actual.
 
 Verificar que la extensión pgvector está activa:
 ```bash
@@ -125,7 +127,7 @@ El script crea:
 - 3 zonas geográficas + 6 rutas (3 presenciales, 3 de agente WA)
 - 40 clientes con datos completos (phone_normalized, avg_purchase_frequency_days, etc.)
 - 30 productos con SKU, embedding semántico y rotation_flag
-- 90 días de historial de órdenes (~120 órdenes con items)
+- 90 días de historial de órdenes (~221 órdenes / ~800 items)
 - Metas de ventas mensuales para cada vendedor
 
 > El seed es idempotente para el tenant: si ya existe "Distribuciones La Garantía",
@@ -142,7 +144,7 @@ docker compose build
 # Levantar API + workers (sin frontend)
 docker compose up -d api celery-worker celery-beat
 
-# Con Flower (monitor de tareas Celery, solo en dev)
+# Con Flower + Frontend Next.js (perfil dev — incluye ambos)
 docker compose --profile dev up -d
 ```
 
@@ -152,9 +154,12 @@ Puertos expuestos:
 |----------|--------|-----|
 | API FastAPI | 8000 | http://localhost:8000 |
 | Docs Swagger | 8000 | http://localhost:8000/docs |
-| Flower (Celery) | 5555 | http://localhost:5555 |
-| PostgreSQL | 5432 | `postgresql://salesagent:password@localhost:5432/salesagent_db` |
+| Frontend Admin | 3000 | http://localhost:3000 (nativo o `--profile dev`) |
+| Flower (Celery) | 5555 | http://localhost:5555 (`--profile dev`) |
+| PostgreSQL | **5433** | `postgresql://salesagent:password@localhost:5433/salesagent_db` |
 | Redis | 6379 | `redis://localhost:6379` |
+
+> ⚠️ **PostgreSQL corre en el puerto 5433** (no 5432) para evitar conflicto con instalaciones locales de PostgreSQL (ej. Postgres.app v14 que usa :5432). El `.env` ya tiene `localhost:5433`. Los contenedores Docker usan internamente `postgres:5432` (hostname del servicio).
 
 Verificar que la API está viva:
 ```bash
@@ -166,14 +171,18 @@ curl http://localhost:8000/health
 
 ## 7. Levantar el frontend (panel admin)
 
+**Opción A — Nativo (recomendado en macOS, hot-reload instantáneo):**
 ```bash
 cd frontend
-npm install
-
-# Crear .env.local del frontend
-echo 'NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1' > .env.local
-
+npm install        # solo la primera vez
 npm run dev
+```
+
+**Opción B — En Docker (todo en un comando, hot-reload más lento en Mac):**
+```bash
+# Desde la raíz del proyecto:
+docker compose --profile dev up -d
+# Levanta API + Celery + Flower + Frontend en un solo comando
 ```
 
 El panel admin queda disponible en: **http://localhost:3000**
@@ -181,8 +190,8 @@ El panel admin queda disponible en: **http://localhost:3000**
 Credenciales de acceso (creadas por el seed):
 | Campo | Valor |
 |-------|-------|
-| Email | `admin@lagarantia.com` |
-| Contraseña | `admin123` |
+| Email | `admin@lagarantia.co` |
+| Contraseña | `Garantia2026!` |
 
 ---
 
@@ -225,7 +234,7 @@ curl "http://localhost:8000/api/v1/webhooks/whatsapp?hub.mode=subscribe&hub.veri
 Ejecutar después de cada deploy para confirmar que todo funciona:
 
 - [ ] `GET /health` → `{"status":"ok"}`
-- [ ] `POST /api/v1/admin/auth/login` con `admin@lagarantia.com` / `admin123` → token JWT
+- [ ] `POST /api/v1/admin/auth/login` con `admin@lagarantia.co` / `Garantia2026!` → token JWT
 - [ ] `GET /api/v1/admin/dashboard` con token → KPIs con datos
 - [ ] `GET /api/v1/admin/clientes` → lista con 40 clientes
 - [ ] `GET /api/v1/admin/productos` → lista con 30 productos
@@ -260,17 +269,19 @@ Las migraciones no se aplicaron o se aplicaron contra otra base de datos. Verifi
 en `.env` y correr `alembic upgrade head` nuevamente.
 
 ### Error: `pgvector extension not found`
-La imagen de PostgreSQL usada no tiene pgvector. Docker Compose usa `postgres:16-alpine` que
-**no** incluye pgvector. La migración 002 lo instala vía `CREATE EXTENSION IF NOT EXISTS vector`.
-Asegurarse de que Docker Compose esté usando la imagen correcta (`postgres:16-alpine`) y que
-la migración 002 se haya aplicado.
+La imagen de PostgreSQL debe ser `pgvector/pgvector:pg16` (no `postgres:16-alpine`).
+La imagen `postgres:*-alpine` no incluye pgvector. Verificar que `docker-compose.yml` dice:
+```yaml
+image: pgvector/pgvector:pg16
+```
+Después de corregir la imagen, recrear el contenedor (`docker compose down -v && docker compose up -d postgres`) y volver a aplicar las migraciones.
 
 ### API responde 500 en todos los endpoints
 Revisar logs de la API:
 ```bash
 docker compose logs api --tail=50
 ```
-Los errores más comunes son variables de entorno faltantes (`ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`).
+Los errores más comunes son variables de entorno faltantes. En desarrollo se requiere al menos `GROQ_API_KEY` (gratuita). Para RAG se necesita `VOYAGE_API_KEY`. En producción: `ANTHROPIC_API_KEY`.
 
 ### Celery worker no procesa tareas
 ```bash

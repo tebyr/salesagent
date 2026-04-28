@@ -15,14 +15,20 @@
 | 1.2.1   | 2026-04-11 | +docs/formacion/ y docs/go_to_market/ — documentación estratégica y de producto |
 | 1.2.2   | 2026-04-11 | RAG integration en ClientAgent — `_build_rag_recommendations` con graceful degradation |
 | 1.3.0   | 2026-04-12 | Tests de integración completados (ítem 8) + suite completa de documentación técnica |
+| 1.3.1   | 2026-04-27 | Setup Meta: App IbSales Agent + sandbox WhatsApp activo. Dependencia Meta = ✅ sandbox. |
+| 1.4.0   | 2026-04-28 | LiteLLM provider-agnostic + AIUsageLog (trazabilidad costos) + migración 004 + MONTAJE_LOCAL.md |
+| 1.4.1   | 2026-04-28 | Montaje local Fase 3 completada — stack Docker operativo al 100%. Frente activo: Fase 4 WhatsApp e2e. |
+| 1.5.0   | 2026-04-28 | WhatsApp e2e completado (sesión 13). Normalización enums + panel web operativo (sesión 14). Stack completo funcionando: backend, agentes IA, WhatsApp y frontend. |
+| 1.5.1   | 2026-04-28 | Docs al día: ARCHITECTURE.md (Groq 3.3-70b-versatile) + DEPLOY.md (frontend opción A/B). |
+| 1.5.2   | 2026-04-28 | Estabilización sesión 15: dashboard y settings corregidos. Stack validado para pruebas de usuarios reales (Danilo, Leslie). |
 
 ---
 
-## Estado actual: ~87%
+## Estado actual: ~92%
 
-Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports API, tests de integración). Documentación técnica 100% completa. Pendiente: infraestructura AWS y CI/CD (requieren decisiones externas — cuenta AWS, dominio, región).
+Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados. **Sesiones 11-15:** LiteLLM provider-agnostic, AIUsageLog, stack Docker al 100%, **WhatsApp e2e funcionando** (Oscar Gomez ↔ SalesAgent con métricas reales), enums normalizados (values_callable), **panel admin Next.js operativo en localhost:3000**, dashboard y settings estables. Stack listo para pruebas con usuarios reales (Danilo Juvinao, Leslie Blanco). Pendiente en Fase 2: tests migrados a LiteLLM (ítem 18), prueba tendero e2e (ítem 19) y luego infraestructura AWS + CI/CD.
 
-**Frente activo: Fase 2** — próximos ítems: infra AWS (ítem 5) + CI/CD (ítem 6).
+**Frente activo: Fase 2** — inmediato: prueba tendero e2e (ítem 19) + migrar tests a `litellm.acompletion` (ítem 18). Luego: infra AWS (ítem 5) + CI/CD (ítem 6).
 **Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---
@@ -78,7 +84,7 @@ Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports 
 
 | Dependencia | Estado | Impacto si falla |
 |-------------|--------|-----------------|
-| Cuenta Meta Business + WABA aprobada | Por gestionar | Bloquea todo el flujo WhatsApp |
+| Cuenta Meta Business + WABA aprobada | ✅ Sandbox activo — App IbSales Agent creada. Pendiente: número real + webhook URL (AWS) | Bloquea flujo WhatsApp en producción |
 | Anthropic API key de producción | Por gestionar | Bloquea agentes IA |
 | Voyage AI API key de producción | Por gestionar | Bloquea búsqueda semántica |
 | SendGrid account verificada | Por gestionar | Bloquea reportes a gerencia |

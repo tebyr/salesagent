@@ -37,6 +37,9 @@ Meta Cloud API
 webhooks/whatsapp.py
     │  verifica firma HMAC-SHA256
     │  lanza BackgroundTask
+    │  [si role=salesperson] AnalyticsService.get_salesperson_today_context()
+    │    → enriquece user_info: month_goal_pct, week_sales, today_sales,
+    │      priority_clients (top 8), top_products (top 5 últimos 60d)
     ▼
 AgentOrchestrator.process_inbound_message()
     │  ConversationService.get_or_create_conversation()
@@ -47,7 +50,7 @@ AgentOrchestrator.process_inbound_message()
     └──(manager)─────────────────────────▶  ManagementAgent.respond_to_query()
          │
          ▼
-    BaseAgent._call_ai()  →  Anthropic Claude API
+    BaseAgent._call_ai()  →  LiteLLM  →  Groq / Anthropic / OpenAI (provider-agnostic)
          │
          ▼
     WhatsAppService.send_text()  →  Meta Cloud API  →  WhatsApp del usuario
@@ -131,7 +134,7 @@ app/
 │   ├── conversation_service.py ← estado de conversaciones
 │   ├── analytics_service.py    ← KPIs, afinidades, recomendaciones
 │   └── embedding_service.py    ← Voyage AI + búsqueda semántica pgvector
-├── models/                     ← 12 tablas SQLAlchemy
+├── models/                     ← 15+ modelos SQLAlchemy (incluye ai_usage.py)
 └── core/
     ├── config.py               ← Settings Pydantic (env vars)
     ├── database.py             ← AsyncSessionLocal, init_db
@@ -154,6 +157,9 @@ app/
 | `goal.period_type = "monthly"` | `goal.period_type = GoalPeriodType.MONTHLY` (enum) |
 | `client.zone` (texto) | `client.zone_name` (texto) / `client.zone` (FK a Zone) |
 | `hash_password = get_password_hash(...)` | `hash_password = hash_password(...)` en security.py |
+| `Column(SAEnum(MiEnum))` | `Column(SAEnum(MiEnum, native_enum=False))` — **siempre** `native_enum=False` o asyncpg fallará con `type "xxx" does not exist` |
+| `User.phone == phone_norm` en queries | `User.phone_normalized == phone_norm` — Meta envía números sin `+` (`573174003589`). El campo `phone` tiene `+573174003589`. Usar siempre `phone_normalized` para buscar por número entrante de WhatsApp |
+| `ConversationRole.VENDOR` | `ConversationRole.SALESPERSON` — el enum tiene `SALESPERSON`, `CLIENT`, `MANAGER`. No existe `VENDOR` |
 
 ### Patrones recurrentes
 
@@ -213,10 +219,10 @@ ngrok (para recibir webhooks de WhatsApp en local)
 # Instalar dependencias Python
 pip install -r requirements.txt
 
-# Levantar infraestructura local
-docker-compose up -d postgres redis
+# Levantar infraestructura local (Postgres en :5433, no :5432)
+docker compose up -d postgres redis
 
-# Aplicar migraciones (siempre las 3, nunca parcial)
+# Aplicar migraciones (siempre las 4, nunca parcial)
 alembic upgrade head
 
 # Poblar datos de prueba

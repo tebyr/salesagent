@@ -4,6 +4,7 @@
 
 | Version | Fecha      | Descripcion                                                                         | Autor               |
 |---------|------------|-------------------------------------------------------------------------------------|---------------------|
+| 1.9.1   | 2026-04-28 | `tenants` agrega `security_config` JSONB: timeout e warning de sesion del panel web, configurables por tenant. Migración 005. | Diseño colaborativo |
 | 1.8.0   | 2026-04-04 | RAG con pgvector: `products` agrega `semantic_tags` JSONB (sinonimos, terminos de canal, contexto de uso, estrategia, atributos) y `embedding` VECTOR(1024) para busqueda semantica de productos via Voyage AI voyage-3. Los embeddings se generan de forma asincrona via Celery (campo NULL hasta que el worker procese la tarea) | Diseño colaborativo |
 | 1.0.0   | 2026-03-31 | Version inicial — modelo completo de dominio                                        | Diseño colaborativo |
 | 1.1.0   | 2026-03-31 | Agrega `delivery_days` y `delivery_cutoff_time` en `routes`; nueva tabla `goal_benefits` | Diseño colaborativo |
@@ -101,6 +102,7 @@ Representa a cada empresa distribuidora que contrata el SaaS. Es la raiz del ais
 | `country_code`               | CHAR(2)        | NN            | 1.0.0 | Codigo ISO 3166-1 del pais (ej. `CO`). Determina formato de facturacion     |
 | `currency_code`              | CHAR(3)        | NN            | 1.0.0 | Codigo ISO 4217 de moneda (ej. `COP`). Usado en todos los valores monetarios|
 | `is_active`                  | BOOLEAN        | NN            | 1.0.0 | Indica si el tenant esta habilitado. Tenants inactivos no procesan mensajes  |
+| `security_config`            | JSONB          |               | 1.9.1 | Configuracion de seguridad del panel web. Default: `{"session_timeout_minutes": 30, "session_warning_minutes": 2}`. Permite parametrizar el cierre de sesion por inactividad por tenant |
 | `created_at`                 | TIMESTAMPTZ    | NN            | 1.0.0 | Fecha y hora de creacion del registro                                       |
 | `updated_at`                 | TIMESTAMPTZ    | NN            | 1.0.0 | Fecha y hora de la ultima modificacion                                      |
 
@@ -936,6 +938,69 @@ Tipologias de establecimiento configurables por tenant. Reemplaza el ENUM fijo `
 | **Geocodificacion**  | Proceso de convertir una direccion de texto en coordenadas GPS (latitud/longitud). En este sistema se dispara automaticamente despues de que el operador valida y aprueba la direccion normalizada |
 | **Dia de Entrega**   | Dia(s) de la semana en que el camion de despacho surte a los clientes de la ruta. Puede ser diferente al dia de visita. El agente lo usa para informar al cliente cuando llega su pedido y para gestionar el cierre de pedidos antes del corte |
 | **Hora de Corte**    | Hora limite (por dia) antes de la cual debe cerrarse un pedido para ser incluido en el proximo despacho. Configurada dentro de `daily_schedule` en la ruta. Pedidos posteriores al corte quedan para el siguiente ciclo de entrega |
+
+---
+
+## 14. `ai_usage_logs`
+
+Registro inmutable de cada llamada a un modelo de IA. Permite control de costos
+por tenant, análisis de eficiencia y base para facturación por consumo en el SaaS.
+Provider-agnostic gracias a LiteLLM: funciona con Anthropic, OpenAI, Google o cualquier
+proveedor soportado.
+
+| Columna | Tipo | Nulo | Descripción |
+|---------|------|------|-------------|
+| `id` | UUID | NO | PK |
+| `created_at` | timestamptz | NO | Momento de la llamada |
+| `updated_at` | timestamptz | NO | (TimestampMixin) |
+| `tenant_id` | UUID | NO | FK → tenants |
+| `provider` | varchar(20) | NO | `anthropic` \| `openai` \| `google` \| `mistral` \| `unknown` |
+| `model` | varchar(100) | NO | Nombre exacto del modelo: `claude-sonnet-4-6`, `gpt-4o`, etc. |
+| `agent_class` | varchar(50) | NO | `SalesAgent` \| `ClientAgent` \| `ManagementAgent` |
+| `triggered_by` | varchar(100) | SÍ | Origen: `inbound_message` \| `scheduler_briefing` \| `scheduler_summary` \| `scheduler_report` \| `scheduler_followup` \| `scheduler_alert` \| `unknown` |
+| `conversation_id` | UUID | SÍ | FK → wa_conversations. Null para llamadas del scheduler |
+| `input_tokens` | integer | NO | Tokens enviados al modelo (prompt) |
+| `output_tokens` | integer | NO | Tokens generados (completion) |
+| `total_tokens` | integer | NO | input + output (desnormalizado para queries rápidas) |
+| `cost_usd` | numeric(10,6) | NO | Costo en USD calculado con tarifa del modelo en el momento de la llamada |
+
+### Índices
+| Índice | Columnas | Propósito |
+|--------|----------|-----------|
+| `ix_ai_usage_logs_tenant_id` | tenant_id | Listado por tenant |
+| `ix_ai_usage_logs_conversation_id` | conversation_id | Costo por conversación |
+| `ix_ai_usage_logs_tenant_created` | (tenant_id, created_at) | Costo mensual — query crítica para alertas |
+
+### Tarifas configuradas (`app/agents/base.py → MODEL_PRICING`)
+| Modelo | Input $/1M | Output $/1M |
+|--------|-----------|------------|
+| claude-haiku-4-5 | $0.80 | $4.00 |
+| claude-sonnet-4-6 | $3.00 | $15.00 |
+| claude-opus-4-6 | $15.00 | $75.00 |
+| gpt-4o-mini | $0.15 | $0.60 |
+| gpt-4o | $2.50 | $10.00 |
+| gemini/gemini-pro | $0.50 | $1.50 |
+
+### Umbrales de alerta (`.env`)
+| Variable | Default | Comportamiento al superarse |
+|----------|---------|----------------------------|
+| `AI_COST_ALERT_THRESHOLD_USD` | $50 | `structlog.warning("ai_cost_alert")` visible en Sentry |
+| `AI_COST_HARD_LIMIT_USD` | $100 | `structlog.error("ai_cost_hard_limit_reached")` — requiere acción manual |
+
+> Los umbrales no bloquean llamadas en v1. El bloqueo automático es roadmap P3.
+
+### Query de costo mensual por tenant
+```sql
+SELECT
+    tenant_id,
+    SUM(cost_usd)     AS total_usd,
+    SUM(total_tokens) AS total_tokens,
+    COUNT(*)          AS total_calls
+FROM ai_usage_logs
+WHERE tenant_id = '<uuid>'
+  AND created_at >= DATE_TRUNC('month', NOW())
+GROUP BY tenant_id;
+```
 
 ---
 

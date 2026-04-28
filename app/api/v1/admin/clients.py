@@ -82,7 +82,7 @@ def _client_to_out(c: Client) -> ClientOut:
         phone=c.phone,
         email=c.email,
         address=c.address,
-        zone=c.zone,
+        zone=c.zone_name,
         segment=c.segment,
         salesperson_id=str(c.salesperson_id) if c.salesperson_id else None,
         is_active=c.is_active,

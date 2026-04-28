@@ -41,9 +41,19 @@ class GoalBulkCreate(BaseModel):
     target_effective_visits: Optional[int] = None
 
 
+class GoalProgress(BaseModel):
+    actual_amount: float = 0
+    actual_visits: int = 0
+    actual_new_clients: int = 0
+    pct_amount: float = 0
+    pct_visits: float = 0
+    projected_amount: float = 0
+
+
 class GoalOut(BaseModel):
     id: str
     salesperson_id: str
+    salesperson_name: Optional[str] = None
     period_type: str
     period_start: date
     period_end: date
@@ -54,9 +64,7 @@ class GoalOut(BaseModel):
     target_active_clients: Optional[int]
     is_active: bool
     notes: Optional[str]
-    # Progress (calculado)
-    actual_amount: Optional[float] = None
-    pct_amount: Optional[float] = None
+    progress: Optional[GoalProgress] = None
 
 
 @router.get("/", response_model=list[GoalOut])
@@ -68,6 +76,7 @@ async def list_goals(
     db: AsyncSession = Depends(get_db),
 ):
     from app.models.order import Order, OrderStatus
+    from app.models.user import User
     from sqlalchemy import func
 
     tenant_id = current_user["tenant_id"]
@@ -85,27 +94,44 @@ async def list_goals(
     )
     goals = result.scalars().all()
 
+    # Precargar nombres de vendedores
+    sp_ids = list({str(g.salesperson_id) for g in goals})
+    sp_names: dict[str, str] = {}
+    if sp_ids:
+        r_names = await db.execute(
+            select(User.id, User.name).where(User.id.in_(sp_ids))
+        )
+        sp_names = {str(row[0]): row[1] for row in r_names.all()}
+
     today = date.today()
     confirmed = [OrderStatus.CONFIRMED, OrderStatus.DISPATCHED, OrderStatus.DELIVERED]
 
     out = []
     for g in goals:
-        # Calcular progreso actual
+        vid = str(g.salesperson_id)
+
+        # Calcular progreso actual en monto
         r = await db.execute(
             select(func.coalesce(func.sum(Order.total_amount), 0)).where(
                 and_(Order.tenant_id == tenant_id,
-                     Order.salesperson_id == str(g.salesperson_id),
+                     Order.salesperson_id == vid,
                      Order.order_date >= g.period_start,
                      Order.order_date <= min(g.period_end, today),
                      Order.status.in_(confirmed))
             )
         )
         actual = float(r.scalar())
-        pct = (actual / g.target_amount * 100) if g.target_amount and g.target_amount > 0 else None
+        pct = (actual / g.target_amount * 100) if g.target_amount and g.target_amount > 0 else 0
+
+        # Proyección lineal al cierre del período
+        total_days = max(1, (g.period_end - g.period_start).days + 1)
+        days_elapsed = max(1, (min(today, g.period_end) - g.period_start).days + 1)
+        projected = round((actual / days_elapsed) * total_days, 0)
 
         out.append(GoalOut(
             id=str(g.id),
-            salesperson_id=str(g.salesperson_id),
+            salesperson_id=vid,
+            salesperson_name=sp_names.get(vid),
             period_type=g.period_type.value,
             period_start=g.period_start,
             period_end=g.period_end,
@@ -116,8 +142,14 @@ async def list_goals(
             target_active_clients=g.target_active_clients,
             is_active=g.is_active,
             notes=g.notes,
-            actual_amount=actual,
-            pct_amount=round(pct, 1) if pct is not None else None,
+            progress=GoalProgress(
+                actual_amount=actual,
+                pct_amount=round(pct, 1),
+                projected_amount=projected,
+                actual_visits=0,
+                actual_new_clients=0,
+                pct_visits=0,
+            ),
         ))
     return out
 

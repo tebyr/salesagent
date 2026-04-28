@@ -228,7 +228,9 @@ Antes de hacer merge de un PR con un nuevo endpoint, verificar:
 | `/admin/zonas` CRUD | ✅ | ✅ | ❌ | ❌ |
 | `/admin/rutas` CRUD | ✅ | ✅ | ✅ | ❌ |
 | `/admin/goals` CRUD | ✅ | ✅ | ❌ | ❌ |
-| `/admin/settings` | ✅ | ❌ | ❌ | ❌ |
+| `GET/PATCH /admin/settings` | ✅ | ✅ | ❌ | ❌ |
+| `PUT /admin/settings/whatsapp` | ✅ | ✅ | ❌ | ❌ |
+| `PUT /admin/settings/security` | ✅ | ✅ | ❌ | ❌ |
 | `/admin/reports/*` | ✅ | ✅ | ❌ | ❌ |
 | `/platform/tenants/*` | solo `__platform__` admin | ❌ | ❌ | ❌ |
 | `/webhooks/whatsapp` | público (verificación HMAC) | — | — | — |

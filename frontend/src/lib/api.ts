@@ -111,6 +111,9 @@ export const updateScheduleConfig = (data: Record<string, unknown>) =>
 export const testWhatsAppConnection = () =>
   api.post("/admin/settings/test-whatsapp").then((r) => r.data);
 // aliases for backward compat
+export const updateSecurityConfig = (data: { session_timeout_minutes: number; session_warning_minutes: number }) =>
+  api.put("/admin/settings/security", data).then((r) => r.data);
+
 export const getSettings = getTenantSettings;
 export const updateSettings = updateTenantSettings;
 export const configureWhatsApp = updateWhatsAppConfig;

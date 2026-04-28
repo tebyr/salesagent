@@ -194,10 +194,11 @@ class ConversationService:
         Retorna dict con informacion del contacto o None si no existe.
         """
         # 1. Buscar en usuarios (vendedores, gerentes, supervisores)
+        # Comparar contra phone_normalized (sin +) que es el formato que envia Meta
         user_result = await db.execute(
             select(User).where(
                 User.tenant_id == tenant_id,
-                User.phone == phone_norm,
+                User.phone_normalized == phone_norm,
                 User.is_active == True,
             )
         )
@@ -214,10 +215,11 @@ class ConversationService:
             }
 
         # 2. Buscar en clientes (tenderos)
+        # Comparar contra phone_normalized (sin +) que es el formato que envia Meta
         client_result = await db.execute(
             select(Client).where(
                 Client.tenant_id == tenant_id,
-                Client.phone == phone_norm,
+                Client.phone_normalized == phone_norm,
                 Client.is_active == True,
             )
         )

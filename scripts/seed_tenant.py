@@ -239,9 +239,9 @@ async def seed(company: str, admin_email: str, admin_password: str):
 
         # ── Vendedores ─────────────────────────────────────────────────
         salespersons_data = [
-            ("Carlos Mendez",    "+573001111111", "Norte"),
+            ("Oscar Gomez",      "+573174003589", "Norte"),
             ("Sandra Gutierrez", "+573002222222", "Centro"),
-            ("Juan Perez",       "+573003333333", "Sur"),
+            ("Danilo Juvinao",   "+573162460168", "Sur"),
         ]
         salesperson_by_zone: dict[str, User] = {}
         salesperson_list = []
@@ -392,9 +392,9 @@ async def seed(company: str, admin_email: str, admin_password: str):
         period_start, period_end = month_range(today.year, today.month)
 
         goals_amounts = {
-            salesperson_list[0].id: 12_000_000,  # Carlos Mendez — Norte
+            salesperson_list[0].id: 12_000_000,  # Oscar Gomez — Norte
             salesperson_list[1].id: 14_000_000,  # Sandra Gutierrez — Centro
-            salesperson_list[2].id: 10_000_000,  # Juan Perez — Sur
+            salesperson_list[2].id: 10_000_000,  # Danilo Juvinao — Sur
         }
         for sp in salesperson_list:
             goal = SalesGoal(
@@ -421,8 +421,8 @@ async def seed(company: str, admin_email: str, admin_password: str):
 
         for client_obj, zone_key, sp in client_list:
             freq = client_obj.avg_purchase_frequency_days or 14
-            # Generar fechas de compra hacia atras desde hoy
-            order_date = today - timedelta(days=rng.randint(2, freq))
+            # Generar fechas de compra hacia atras desde hoy (incluye pedidos recientes 0-2 días)
+            order_date = today - timedelta(days=rng.randint(0, min(2, freq)))
             total_amount_accum = 0.0
             purchase_count = 0
 
