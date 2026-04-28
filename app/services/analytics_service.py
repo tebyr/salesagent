@@ -315,6 +315,101 @@ class AnalyticsService:
 
         return recommendations[:limit]
 
+    async def get_salesperson_today_context(
+        self,
+        salesperson_id: str,
+    ) -> dict:
+        """
+        Retorna datos de contexto del dia actual para el agente conversacional.
+        Usado en el webhook para enriquecer user_info antes de pasarlo al orquestador.
+
+        Retorna:
+            {
+                "month_goal_pct": "72.5%",   # Avance vs meta mensual
+                "today_sales": "$450,000",    # Ventas confirmadas hoy
+                "clients_today": 8,           # Clientes en ruta hoy
+                "visited_today": 3,           # Visitas realizadas hoy
+            }
+        """
+        from app.models.order import Order, OrderStatus
+        from app.models.route import RouteVisit, Route, RouteType
+        from datetime import date as date_type
+
+        today = date_type.today()
+
+        async with AsyncSessionLocal() as db:
+            # 1. Meta mensual: % de avance
+            goal_data = await self.get_salesperson_goal_progress(
+                salesperson_id=salesperson_id,
+                date=today,
+            )
+            pct = goal_data.get("pct_amount", 0)
+            month_goal_pct = f"{pct:.1f}%"
+
+            # 2. Ventas de hoy (ordenes confirmadas/despachadas/entregadas)
+            today_sales_result = await db.execute(
+                select(func.sum(Order.total_amount)).where(
+                    and_(
+                        Order.tenant_id == self.tenant_id,
+                        Order.salesperson_id == salesperson_id,
+                        Order.order_date == today,
+                        Order.status.in_([
+                            OrderStatus.CONFIRMED,
+                            OrderStatus.DISPATCHED,
+                            OrderStatus.DELIVERED,
+                        ])
+                    )
+                )
+            )
+            today_amount = today_sales_result.scalar() or 0.0
+            today_sales = f"${today_amount:,.0f}"
+
+            # 3. Clientes en ruta hoy — RouteVisit JOIN Route por salesperson_id
+            # RouteVisit no tiene visit_date ni salesperson_id directos.
+            # Se filtra por created_at::date == today y JOIN a Route para salesperson.
+            from app.models.route import VisitStatus
+            from sqlalchemy import cast as sa_cast, Date as SADate
+
+            clients_today_result = await db.execute(
+                select(func.count(RouteVisit.id))
+                .join(Route, RouteVisit.route_id == Route.id)
+                .where(
+                    and_(
+                        RouteVisit.tenant_id == self.tenant_id,
+                        Route.salesperson_id == salesperson_id,
+                        sa_cast(RouteVisit.created_at, SADate) == today,
+                    )
+                )
+            )
+            clients_today = clients_today_result.scalar() or 0
+
+            # 4. Visitas realizadas hoy: visited_at::date == today y estado de contacto
+            visited_today_result = await db.execute(
+                select(func.count(RouteVisit.id))
+                .join(Route, RouteVisit.route_id == Route.id)
+                .where(
+                    and_(
+                        RouteVisit.tenant_id == self.tenant_id,
+                        Route.salesperson_id == salesperson_id,
+                        RouteVisit.visited_at.isnot(None),
+                        sa_cast(RouteVisit.visited_at, SADate) == today,
+                        RouteVisit.status.in_([
+                            VisitStatus.VISITED_SALE,
+                            VisitStatus.VISITED_NO_SALE,
+                            VisitStatus.ESCALATED,
+                        ])
+                    )
+                )
+            )
+            visited_today = visited_today_result.scalar() or 0
+
+        return {
+            "month_goal_pct": month_goal_pct,
+            "today_sales": today_sales,
+            "clients_today": clients_today,
+            "visited_today": visited_today,
+        }
+
     def _generate_route_alerts(self, all_clients: list, priority_clients: list) -> list:
         """Genera alertas relevantes para la ruta del dia."""
         alerts = []

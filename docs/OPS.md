@@ -323,6 +323,7 @@ celery -A app.scheduler.celery_app control pool_restart
 |---|---|---|
 | `litellm.exceptions.AuthenticationError` | API key del proveedor IA inválida o faltante | Verificar `GROQ_API_KEY` (dev) o `ANTHROPIC_API_KEY` (prod) en `.env` |
 | `litellm.exceptions.RateLimitError` | Límite de tokens/min en el proveedor IA | Groq: 6K tokens/min en tier gratuito. Anthropic: verificar cuota |
+| `litellm.BadRequestError: model_decommissioned` | El modelo Groq fue dado de baja | Actualizar `AI_MODEL_STANDARD` y `AI_MODEL_COMPLEX` en `.env`. Modelo actual: `groq/llama-3.3-70b-versatile`. Ver [console.groq.com/docs/deprecations](https://console.groq.com/docs/deprecations) |
 | `anthropic.APIStatusError` | (Anthropic directo — raro) Límite de rate o API key inválida | Verificar cuota en console.anthropic.com |
 | `asyncpg.TooManyConnectionsError` | Pool de BD agotado | Aumentar `DATABASE_POOL_SIZE` o investigar leaks |
 | `whatsapp_send_failed` | Token expirado del tenant | Rotar token (sección 3.4) |

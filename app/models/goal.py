@@ -30,7 +30,7 @@ class SalesGoal(UUIDMixin, TimestampMixin, Base):
     tenant_id = Column(PGUUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True)
     salesperson_id = Column(PGUUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
 
-    period_type = Column(SAEnum(GoalPeriodType, native_enum=False), nullable=False)
+    period_type = Column(SAEnum(GoalPeriodType, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     period_start = Column(Date, nullable=False, index=True)
     period_end = Column(Date, nullable=False, index=True)
 

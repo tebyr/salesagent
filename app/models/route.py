@@ -86,7 +86,7 @@ class Route(UUIDMixin, TimestampMixin, Base):
                             nullable=False, index=True)
 
     name           = Column(String(200), nullable=True)
-    route_type     = Column(SAEnum(RouteType, native_enum=False),
+    route_type     = Column(SAEnum(RouteType, native_enum=False, values_callable=lambda obj: [e.value for e in obj]),
                             default=RouteType.PRESENTIAL, nullable=False)
 
     # Días operativos (ISO: 1=Lun … 6=Sáb) almacenados como JSONB array
@@ -98,7 +98,7 @@ class Route(UUIDMixin, TimestampMixin, Base):
     # {"1": {"start":"07:30","end":"16:00","cutoff":"15:30"}, "6": {...}}
     daily_schedule = Column(JSONB, nullable=True)
 
-    status         = Column(SAEnum(RouteStatus, native_enum=False),
+    status         = Column(SAEnum(RouteStatus, native_enum=False, values_callable=lambda obj: [e.value for e in obj]),
                             default=RouteStatus.PENDING, nullable=False)
     is_active      = Column(Boolean, default=True, nullable=False)
     notes          = Column(Text, nullable=True)
@@ -142,9 +142,9 @@ class RouteVisit(UUIDMixin, TimestampMixin, Base):
                         nullable=False, index=True)
 
     visit_order = Column(Integer, nullable=False, default=0)
-    visit_type  = Column(SAEnum(VisitType, native_enum=False), nullable=False,
+    visit_type  = Column(SAEnum(VisitType, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False,
                          default=VisitType.PRESENTIAL)
-    status      = Column(SAEnum(VisitStatus, native_enum=False), default=VisitStatus.PENDING,
+    status      = Column(SAEnum(VisitStatus, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), default=VisitStatus.PENDING,
                          nullable=False)
 
     # Notificación pre-visita / mensaje inicial del agente

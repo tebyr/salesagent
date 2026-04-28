@@ -18,14 +18,15 @@
 | 1.3.1   | 2026-04-27 | Setup Meta: App IbSales Agent + sandbox WhatsApp activo. Dependencia Meta = ✅ sandbox. |
 | 1.4.0   | 2026-04-28 | LiteLLM provider-agnostic + AIUsageLog (trazabilidad costos) + migración 004 + MONTAJE_LOCAL.md |
 | 1.4.1   | 2026-04-28 | Montaje local Fase 3 completada — stack Docker operativo al 100%. Frente activo: Fase 4 WhatsApp e2e. |
+| 1.5.0   | 2026-04-28 | WhatsApp e2e completado (sesión 13). Normalización enums + panel web operativo (sesión 14). Stack completo funcionando: backend, agentes IA, WhatsApp y frontend. |
 
 ---
 
-## Estado actual: ~90%
+## Estado actual: ~92%
 
-Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports API, tests de integración). **Sesiones 11-12:** capa IA refactorizada a LiteLLM (provider-agnostic), modelo AIUsageLog con trazabilidad de costos por tenant, **Fase 3 montaje local completada** (stack Docker al 100%: PostgreSQL 16+pgvector :5433, Redis :6379, API :8000, Celery worker/beat — seed exitoso y login verificado). Pendiente: Fase 4 WhatsApp e2e y luego infraestructura AWS + CI/CD.
+Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados. **Sesiones 11-14:** LiteLLM provider-agnostic, AIUsageLog, stack Docker al 100%, **WhatsApp e2e funcionando** (Oscar Gomez ↔ SalesAgent con métricas reales), enums normalizados (values_callable), **panel admin Next.js operativo en localhost:3000**. Pendiente en Fase 2: tests migrados a LiteLLM (ítem 18), prueba tendero e2e (ítem 19) y luego infraestructura AWS + CI/CD.
 
-**Frente activo: Fase 2** — inmediato: Fase 4 MONTAJE_LOCAL.md (ngrok + webhook Meta + prueba WA real). Luego: infra AWS (ítem 5) + CI/CD (ítem 6).
+**Frente activo: Fase 2** — inmediato: migrar tests a `litellm.acompletion` (ítem 18) + prueba tendero e2e (ítem 19). Luego: infra AWS (ítem 5) + CI/CD (ítem 6).
 **Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---

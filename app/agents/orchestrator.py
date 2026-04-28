@@ -69,15 +69,15 @@ class AgentOrchestrator:
         )
 
         try:
-            if role == ConversationRole.VENDOR:
+            if role in (ConversationRole.SALESPERSON, "salesperson", "supervisor", "admin"):
                 return await self._handle_salesperson_message(
                     name, message_text, conversation_state, user_info
                 )
-            elif role == ConversationRole.CLIENT:
+            elif role in (ConversationRole.CLIENT, "client"):
                 return await self._handle_client_message(
                     name, message_text, conversation_state, user_info
                 )
-            elif role == ConversationRole.MANAGER:
+            elif role in (ConversationRole.MANAGER, "manager"):
                 return await self._handle_manager_message(
                     name, message_text, conversation_state, user_info
                 )

@@ -33,7 +33,7 @@ class User(UUIDMixin, TimestampMixin, Base):
     phone_normalized = Column(String(20), nullable=False, index=True)  # Solo digitos
 
     # Acceso
-    role = Column(SAEnum(UserRole, native_enum=False), nullable=False, default=UserRole.SALESPERSON)
+    role = Column(SAEnum(UserRole, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False, default=UserRole.SALESPERSON)
     is_active = Column(Boolean, default=True, nullable=False)
     password_hash = Column(String(200), nullable=True)  # Para acceso al panel admin
 

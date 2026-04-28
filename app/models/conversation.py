@@ -33,12 +33,12 @@ class WhatsAppConversation(UUIDMixin, TimestampMixin, Base):
 
     # Identificacion del participante
     phone_normalized = Column(String(20), nullable=False, index=True)
-    role = Column(SAEnum(ConversationRole, native_enum=False), nullable=False)
+    role = Column(SAEnum(ConversationRole, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), nullable=False)
     user_id = Column(PGUUID(as_uuid=True), nullable=True)    # Si es vendedor o gerente
     client_id = Column(PGUUID(as_uuid=True), nullable=True)  # Si es tendero
 
     # Estado de la conversacion
-    state = Column(SAEnum(ConversationState, native_enum=False), default=ConversationState.IDLE, nullable=False)
+    state = Column(SAEnum(ConversationState, native_enum=False, values_callable=lambda obj: [e.value for e in obj]), default=ConversationState.IDLE, nullable=False)
 
     # Contexto (JSON con datos del flujo actual)
     context = Column(JSON, default={})

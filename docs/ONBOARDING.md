@@ -155,6 +155,8 @@ app/
 | `client.zone` (texto) | `client.zone_name` (texto) / `client.zone` (FK a Zone) |
 | `hash_password = get_password_hash(...)` | `hash_password = hash_password(...)` en security.py |
 | `Column(SAEnum(MiEnum))` | `Column(SAEnum(MiEnum, native_enum=False))` — **siempre** `native_enum=False` o asyncpg fallará con `type "xxx" does not exist` |
+| `User.phone == phone_norm` en queries | `User.phone_normalized == phone_norm` — Meta envía números sin `+` (`573174003589`). El campo `phone` tiene `+573174003589`. Usar siempre `phone_normalized` para buscar por número entrante de WhatsApp |
+| `ConversationRole.VENDOR` | `ConversationRole.SALESPERSON` — el enum tiene `SALESPERSON`, `CLIENT`, `MANAGER`. No existe `VENDOR` |
 
 ### Patrones recurrentes
 
