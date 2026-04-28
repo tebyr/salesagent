@@ -22,6 +22,7 @@
 | 1.6.0   | 2026-04-28 | 13     | WhatsApp e2e: 5 bugs críticos corregidos (phone_normalized, ORM serialization, ConversationRole, Groq model, force-recreate). `get_salesperson_today_context()`. Primera conversación real exitosa. |
 | 1.6.1   | 2026-04-28 | 14     | Normalización completa de enums (`values_callable`). Frontend en Docker Compose (`--profile dev`). Fix @radix-ui/react-badge. Panel web operativo en localhost:3000. |
 | 1.6.2   | 2026-04-28 | 14     | /mantener-docs: ARCHITECTURE.md (modelo Groq actualizado ×4, panel admin ✅), DEPLOY.md (frontend en puertos + opción A/B arranque). |
+| 1.6.3   | 2026-04-28 | 15     | Fix dashboard.py: 4 bugs (UserRole.VENDOR, Route.date, VisitStatus.AGENT_SALE, JOINs ambiguos). Fix settings page: field names 422. WhatsApp e2e re-confirmado con token renovado. |
 
 ---
 
@@ -31,7 +32,7 @@ SaaS B2B para distribuidoras colombianas del canal tradicional. Un agente superv
 
 **Directorio del proyecto:** `/Users/oscarmauriciogomezacevedo/claudecode/salesagent`
 **Repositorio:** `https://github.com/tebyr/salesagent.git` (rama `master`)
-**Último commit:** `e172e54` — feat: LiteLLM provider-agnostic + AIUsageLog + Groq dev + local stack operativo v1.5.0 *(pendiente commit sesiones 11–14)*
+**Último commit:** `49ac754` — fix: corregir bugs críticos en dashboard y settings frontend
 
 ### Stack
 | Capa | Tecnología |
@@ -449,4 +450,5 @@ cd frontend && npm run dev   # dependencias ya instaladas
 | 11 | 2026-04-28 | LiteLLM como capa IA (provider-agnostic). AIUsageLog + migración 004 (trazabilidad costos). Fix MessageLog.ai_tokens_used. docs/MONTAJE_LOCAL.md (4 fases). Fase 1 local validada. DATA_DICTIONARY tabla ai_usage_logs. Groq integrado como proveedor de pruebas gratuito. | pendiente commit |
 | 12 | 2026-04-28 | **Fase 3 montaje local completada.** SAEnum `native_enum=False` en 6 modelos (fix asyncpg cast). Docker networking fix (localhost→service hostnames en compose). docker-compose.yml corregido. Seed exitoso: 40 clientes, 30 prods, 3 vendedores (Oscar Gomez, Sandra Gutierrez, Danilo Juvinao), 221 pedidos. API:8000 + Celery worker/beat operativos. Login verificado. | pendiente commit |
 | 13 | 2026-04-28 | **Fase 4 WhatsApp e2e completada.** 5 bugs corregidos en el flujo conversacional: (1) `phone_normalized` para lookup, (2) serializar ORM conversation a dict, (3) `ConversationRole.SALESPERSON` no `VENDOR`, (4) modelo Groq decommissioned → `llama-3.3-70b-versatile`, (5) `docker compose --force-recreate` para recargar .env. Nuevo `AnalyticsService.get_salesperson_today_context()`. Enriquecimiento user_info en webhook. Primera conversación e2e exitosa: Oscar Gomez → SalesAgent respondiendo con métricas reales. | pendiente commit |
-| 14 | 2026-04-28 | **Normalización enums + panel web + docs.** `values_callable` en 11 SAEnum de 6 modelos. BD migrada a lowercase. `docker-compose.yml` +frontend `--profile dev`. Fix `@radix-ui/react-badge`. Panel admin Next.js operativo en `localhost:3000`. `/mantener-docs`: ARCHITECTURE.md (Groq model ×4) + DEPLOY.md (frontend opciones). | pendiente commit |
+| 14 | 2026-04-28 | **Normalización enums + panel web + docs.** `values_callable` en 11 SAEnum de 6 modelos. BD migrada a lowercase. `docker-compose.yml` +frontend `--profile dev`. Fix `@radix-ui/react-badge`. Panel admin Next.js operativo en `localhost:3000`. `/mantener-docs`: ARCHITECTURE.md (Groq model ×4) + DEPLOY.md (frontend opciones). | `40ae3f7` `0758338` |
+| 15 | 2026-04-28 | **Estabilización dashboard + settings + WhatsApp confirmado.** Fix `dashboard.py`: 4 bugs críticos (`UserRole.VENDOR`, `Route.date`, `VisitStatus.AGENT_SALE`, JOINs ambiguos sin `select_from`). Fix `settings/page.tsx`: field names mismatch → 422. Token WA renovado. WhatsApp e2e re-confirmado: Oscar Gomez, stack listo para pruebas de Danilo y Leslie. | `49ac754` |
