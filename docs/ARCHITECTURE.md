@@ -23,8 +23,8 @@ El agente actúa como capa de inteligencia y comunicación entre tres actores:
 | Cache / Queue     | Redis (AWS ElastiCache)               | Estado conversaciones + Celery broker            |
 | AI - Capa         | **LiteLLM ≥ 1.40** (provider-agnostic)| Cambiar proveedor = cambiar env var; sin tocar código |
 | AI - Simple       | `groq/llama-3.1-8b-instant` (dev) · `claude-haiku-*` (prod) | Notificaciones rutinarias (menor costo) |
-| AI - Estandar     | `groq/llama-3.1-70b-versatile` (dev) · `claude-sonnet-*` (prod) | Recomendaciones, respuestas reactivas |
-| AI - Complejo     | `groq/llama-3.1-70b-versatile` (dev) · `claude-opus-*` (prod) | Reportes gerenciales (máxima calidad) |
+| AI - Estandar     | `groq/llama-3.3-70b-versatile` (dev) · `claude-sonnet-*` (prod) | Recomendaciones, respuestas reactivas |
+| AI - Complejo     | `groq/llama-3.3-70b-versatile` (dev) · `claude-opus-*` (prod) | Reportes gerenciales (máxima calidad) |
 | AI - Costos       | `AIUsageLog` en BD                    | Trazabilidad por tenant; umbrales mensuales alertables |
 | WhatsApp          | Meta Cloud API (oficial)              | Sin costo de plataforma, escalable               |
 | Email             | SendGrid                              | Reportes gerenciales HTML                        |
@@ -339,10 +339,10 @@ La capa es **LiteLLM** — el nombre del modelo se configura en `.env` (`AI_MODE
 | Notificación pre-visita | Simple | llama-3.1-8b-instant | claude-haiku-* |
 | Resumen diario vendedor | Simple | llama-3.1-8b-instant | claude-haiku-* |
 | Clasificación de intención | Simple | llama-3.1-8b-instant | claude-haiku-* |
-| Briefing matutino vendedor | Estándar | llama-3.1-70b-versatile | claude-sonnet-* |
-| Reporte rendimiento vendedor | Estándar | llama-3.1-70b-versatile | claude-sonnet-* |
-| Respuesta reactiva compleja | Estándar | llama-3.1-70b-versatile | claude-sonnet-* |
-| Reporte gerencial email | Complejo | llama-3.1-70b-versatile | claude-opus-* |
+| Briefing matutino vendedor | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Reporte rendimiento vendedor | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Respuesta reactiva compleja | Estándar | llama-3.3-70b-versatile | claude-sonnet-* |
+| Reporte gerencial email | Complejo | llama-3.3-70b-versatile | claude-opus-* |
 
 **Estimación mensual por tenant en producción (40 vendedores, 3.000 clientes, con Claude):**
 - Proactivo diario: ~$15-25/mes en AI
@@ -533,7 +533,7 @@ Para cada tenant se necesita:
 - Integración ERP via external_id/external_source
 
 ### v2.0 (Siguiente)
-- Panel web de administración completo (Next.js)
+- ✅ Panel web de administración (Next.js) — operativo en localhost:3000
 - Integración ERP en tiempo real (Siesa, World Office) via webhook
 - Georeferenciación y optimización de rutas
 - Gestión de cartera y cobros

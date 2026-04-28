@@ -144,7 +144,7 @@ docker compose build
 # Levantar API + workers (sin frontend)
 docker compose up -d api celery-worker celery-beat
 
-# Con Flower (monitor de tareas Celery, solo en dev)
+# Con Flower + Frontend Next.js (perfil dev — incluye ambos)
 docker compose --profile dev up -d
 ```
 
@@ -154,7 +154,8 @@ Puertos expuestos:
 |----------|--------|-----|
 | API FastAPI | 8000 | http://localhost:8000 |
 | Docs Swagger | 8000 | http://localhost:8000/docs |
-| Flower (Celery) | 5555 | http://localhost:5555 |
+| Frontend Admin | 3000 | http://localhost:3000 (nativo o `--profile dev`) |
+| Flower (Celery) | 5555 | http://localhost:5555 (`--profile dev`) |
 | PostgreSQL | **5433** | `postgresql://salesagent:password@localhost:5433/salesagent_db` |
 | Redis | 6379 | `redis://localhost:6379` |
 
@@ -170,14 +171,18 @@ curl http://localhost:8000/health
 
 ## 7. Levantar el frontend (panel admin)
 
+**Opción A — Nativo (recomendado en macOS, hot-reload instantáneo):**
 ```bash
 cd frontend
-npm install
-
-# Crear .env.local del frontend
-echo 'NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1' > .env.local
-
+npm install        # solo la primera vez
 npm run dev
+```
+
+**Opción B — En Docker (todo en un comando, hot-reload más lento en Mac):**
+```bash
+# Desde la raíz del proyecto:
+docker compose --profile dev up -d
+# Levanta API + Celery + Flower + Frontend en un solo comando
 ```
 
 El panel admin queda disponible en: **http://localhost:3000**

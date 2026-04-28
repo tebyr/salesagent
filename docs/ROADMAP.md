@@ -19,6 +19,7 @@
 | 1.4.0   | 2026-04-28 | LiteLLM provider-agnostic + AIUsageLog (trazabilidad costos) + migración 004 + MONTAJE_LOCAL.md |
 | 1.4.1   | 2026-04-28 | Montaje local Fase 3 completada — stack Docker operativo al 100%. Frente activo: Fase 4 WhatsApp e2e. |
 | 1.5.0   | 2026-04-28 | WhatsApp e2e completado (sesión 13). Normalización enums + panel web operativo (sesión 14). Stack completo funcionando: backend, agentes IA, WhatsApp y frontend. |
+| 1.5.1   | 2026-04-28 | Docs al día: ARCHITECTURE.md (Groq 3.3-70b-versatile) + DEPLOY.md (frontend opción A/B). |
 
 ---
 
