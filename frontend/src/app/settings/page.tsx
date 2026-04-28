@@ -148,10 +148,9 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
   const wa = (settings.whatsapp_config as Record<string, string>) || {};
   const [form, setForm] = useState({
     phone_number_id: wa.phone_number_id || "",
-    waba_id: wa.waba_id || "",
+    business_account_id: wa.business_account_id || "",
     access_token: wa.access_token || "",
-    webhook_verify_token: wa.webhook_verify_token || "",
-    phone_number: wa.phone_number || "",
+    phone_display: wa.phone_display || "",
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -206,12 +205,12 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
       </FieldGroup>
       <FieldGroup label="WABA ID" description="ID de la cuenta de WhatsApp Business">
         <Input
-          value={form.waba_id}
-          onChange={(e) => setForm({ ...form, waba_id: e.target.value })}
+          value={form.business_account_id}
+          onChange={(e) => setForm({ ...form, business_account_id: e.target.value })}
           placeholder="987654321098765"
         />
       </FieldGroup>
-      <FieldGroup label="Access Token" description="Token de acceso permanente de la API">
+      <FieldGroup label="Access Token" description="Token de acceso de la API (caduca cada 24h en sandbox)">
         <Input
           type="password"
           value={form.access_token}
@@ -219,18 +218,11 @@ function WhatsAppTab({ settings }: { settings: Record<string, unknown> }) {
           placeholder="EAAxxxxxxxx..."
         />
       </FieldGroup>
-      <FieldGroup label="Webhook Verify Token" description="Token para verificar el webhook">
+      <FieldGroup label="Número de teléfono" description="Número visible al usuario (ej: +57 300 123 4567)">
         <Input
-          value={form.webhook_verify_token}
-          onChange={(e) => setForm({ ...form, webhook_verify_token: e.target.value })}
-          placeholder="mi_token_secreto"
-        />
-      </FieldGroup>
-      <FieldGroup label="Número de teléfono" description="Número con código de país (sin +)">
-        <Input
-          value={form.phone_number}
-          onChange={(e) => setForm({ ...form, phone_number: e.target.value })}
-          placeholder="573001234567"
+          value={form.phone_display}
+          onChange={(e) => setForm({ ...form, phone_display: e.target.value })}
+          placeholder="+57 300 123 4567"
         />
       </FieldGroup>
 
