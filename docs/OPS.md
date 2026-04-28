@@ -48,7 +48,7 @@ docker exec salesagent-celery-worker celery -A app.scheduler.celery_app inspect 
 | Errores API (5xx) | > 1% de requests | Sentry / CloudWatch |
 | Cola Celery pendientes | > 50 tareas | Flower |
 | Tareas Celery fallidas | > 0 en 1h | Flower / Sentry |
-| Tokens Claude (costo) | > $50/día | structlog `ai_call_completed` |
+| Costo IA mensual por tenant | > umbral config | `ai_usage_logs` (query por `tenant_id + created_at`) · structlog `ai_call_completed` |
 | Conexiones BD activas | > 80% del pool | RDS CloudWatch |
 
 ---
@@ -321,7 +321,9 @@ celery -A app.scheduler.celery_app control pool_restart
 
 | Error en Sentry | Causa | Acción |
 |---|---|---|
-| `anthropic.APIStatusError` | Límite de rate o API key inválida | Verificar cuota en console.anthropic.com |
+| `litellm.exceptions.AuthenticationError` | API key del proveedor IA inválida o faltante | Verificar `GROQ_API_KEY` (dev) o `ANTHROPIC_API_KEY` (prod) en `.env` |
+| `litellm.exceptions.RateLimitError` | Límite de tokens/min en el proveedor IA | Groq: 6K tokens/min en tier gratuito. Anthropic: verificar cuota |
+| `anthropic.APIStatusError` | (Anthropic directo — raro) Límite de rate o API key inválida | Verificar cuota en console.anthropic.com |
 | `asyncpg.TooManyConnectionsError` | Pool de BD agotado | Aumentar `DATABASE_POOL_SIZE` o investigar leaks |
 | `whatsapp_send_failed` | Token expirado del tenant | Rotar token (sección 3.4) |
 | `rag_recommendations_failed` | Voyage AI caído o key inválida | Verificar en dash.voyageai.com |

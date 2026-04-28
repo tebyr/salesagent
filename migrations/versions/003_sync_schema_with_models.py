@@ -109,10 +109,10 @@ def upgrade() -> None:
     # Agregar campos de notas y contexto para el agente
     op.add_column("clients", sa.Column("notes", sa.Text(), nullable=True))
     op.add_column("clients", sa.Column(
-        "preferred_categories", postgresql.JSON(), nullable=True, server_default="'[]'::json"
+        "preferred_categories", postgresql.JSON(), nullable=True, server_default=sa.text("'[]'::json")
     ))
     op.add_column("clients", sa.Column(
-        "tags", postgresql.JSON(), nullable=True, server_default="'[]'::json"
+        "tags", postgresql.JSON(), nullable=True, server_default=sa.text("'[]'::json")
     ))
 
     # ── PRODUCTS ───────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ def upgrade() -> None:
 
     # target_segment (String) → target_segments (JSONB)
     op.add_column("promotions", sa.Column(
-        "target_segments", postgresql.JSONB(), nullable=True, server_default="'[]'::jsonb"
+        "target_segments", postgresql.JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")
     ))
     op.execute(
         """
@@ -159,7 +159,7 @@ def upgrade() -> None:
     op.add_column("promotions", sa.Column("discount_amount", sa.Float(), nullable=True))
     op.add_column("promotions", sa.Column("min_quantity", sa.Integer(), nullable=True))
     op.add_column("promotions", sa.Column(
-        "target_zones", postgresql.JSONB(), nullable=True, server_default="'[]'::jsonb"
+        "target_zones", postgresql.JSONB(), nullable=True, server_default=sa.text("'[]'::jsonb")
     ))
 
     # ── SALES_GOALS ────────────────────────────────────────────────────────
@@ -173,7 +173,7 @@ def upgrade() -> None:
         "target_catalog_coverage", sa.Float(), nullable=True
     ))
     op.add_column("sales_goals", sa.Column(
-        "target_campaigns", postgresql.JSON(), nullable=True, server_default="'{}'"
+        "target_campaigns", postgresql.JSON(), nullable=True, server_default=sa.text("'{}'::json")
     ))
     op.add_column("sales_goals", sa.Column("notes", sa.String(500), nullable=True))
 

@@ -47,7 +47,7 @@ AgentOrchestrator.process_inbound_message()
     └──(manager)─────────────────────────▶  ManagementAgent.respond_to_query()
          │
          ▼
-    BaseAgent._call_ai()  →  Anthropic Claude API
+    BaseAgent._call_ai()  →  LiteLLM  →  Groq / Anthropic / OpenAI (provider-agnostic)
          │
          ▼
     WhatsAppService.send_text()  →  Meta Cloud API  →  WhatsApp del usuario
@@ -131,7 +131,7 @@ app/
 │   ├── conversation_service.py ← estado de conversaciones
 │   ├── analytics_service.py    ← KPIs, afinidades, recomendaciones
 │   └── embedding_service.py    ← Voyage AI + búsqueda semántica pgvector
-├── models/                     ← 12 tablas SQLAlchemy
+├── models/                     ← 15+ modelos SQLAlchemy (incluye ai_usage.py)
 └── core/
     ├── config.py               ← Settings Pydantic (env vars)
     ├── database.py             ← AsyncSessionLocal, init_db
@@ -154,6 +154,7 @@ app/
 | `goal.period_type = "monthly"` | `goal.period_type = GoalPeriodType.MONTHLY` (enum) |
 | `client.zone` (texto) | `client.zone_name` (texto) / `client.zone` (FK a Zone) |
 | `hash_password = get_password_hash(...)` | `hash_password = hash_password(...)` en security.py |
+| `Column(SAEnum(MiEnum))` | `Column(SAEnum(MiEnum, native_enum=False))` — **siempre** `native_enum=False` o asyncpg fallará con `type "xxx" does not exist` |
 
 ### Patrones recurrentes
 
@@ -213,10 +214,10 @@ ngrok (para recibir webhooks de WhatsApp en local)
 # Instalar dependencias Python
 pip install -r requirements.txt
 
-# Levantar infraestructura local
-docker-compose up -d postgres redis
+# Levantar infraestructura local (Postgres en :5433, no :5432)
+docker compose up -d postgres redis
 
-# Aplicar migraciones (siempre las 3, nunca parcial)
+# Aplicar migraciones (siempre las 4, nunca parcial)
 alembic upgrade head
 
 # Poblar datos de prueba

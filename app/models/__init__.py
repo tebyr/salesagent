@@ -9,10 +9,12 @@ from app.models.goal import SalesGoal
 from app.models.conversation import WhatsAppConversation
 from app.models.notification import NotificationSchedule, NotificationLog
 from app.models.analytics import ClientProductAffinity, DailySalesSnapshot
+from app.models.ai_usage import AIUsageLog
 
 __all__ = [
     "Tenant", "User", "Client", "Product", "Promotion",
     "Inventory", "Route", "RouteVisit", "Order", "OrderItem",
     "SalesGoal", "WhatsAppConversation", "NotificationSchedule",
     "NotificationLog", "ClientProductAffinity", "DailySalesSnapshot",
+    "AIUsageLog",
 ]

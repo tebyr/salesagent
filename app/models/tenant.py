@@ -2,7 +2,7 @@
 Tenant = Empresa distribuidora cliente del SaaS.
 Cada tenant tiene su propio numero de WhatsApp, branding y configuracion.
 """
-from sqlalchemy import Column, String, Boolean, JSON, Text
+from sqlalchemy import Column, String, Boolean, Integer, JSON, Text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -54,7 +54,7 @@ class Tenant(UUIDMixin, TimestampMixin, Base):
 
     # Plan SaaS
     plan = Column(String(50), default="starter", nullable=False)  # starter | professional | enterprise
-    max_salespersons = Column(Column(String).__class__, default=50)
+    max_salespersons = Column(Integer, default=50)
 
     # Relationships
     users = relationship("User", back_populates="tenant", lazy="select")

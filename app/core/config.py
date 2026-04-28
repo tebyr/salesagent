@@ -31,14 +31,22 @@ class Settings(BaseSettings):
     # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     encryption_key: str
 
-    # Anthropic
-    anthropic_api_key: str
+    # Proveedores IA (todos opcionales — al menos uno requerido en runtime)
+    # Cambiar AI_MODEL_* en .env para cambiar de proveedor sin tocar código
+    anthropic_api_key: Optional[str] = None   # console.anthropic.com
+    openai_api_key:    Optional[str] = None   # platform.openai.com
+    groq_api_key:      Optional[str] = None   # console.groq.com — gratuito para pruebas
 
-    # Voyage AI (embeddings RAG)
-    voyage_api_key: str
-    ai_model_simple: str = "claude-haiku-4-5"
-    ai_model_standard: str = "claude-sonnet-4-6"
-    ai_model_complex: str = "claude-opus-4-6"
+    # Voyage AI (embeddings RAG — requerido solo si se usa búsqueda semántica)
+    voyage_api_key: Optional[str] = None      # dash.voyageai.com
+
+    # Modelos por nivel de complejidad — cambiar aquí para cambiar de proveedor
+    # Anthropic:  claude-haiku-4-5 | claude-sonnet-4-6 | claude-opus-4-6
+    # Groq (dev): groq/llama-3.1-8b-instant | groq/llama-3.1-70b-versatile
+    # OpenAI:     gpt-4o-mini | gpt-4o
+    ai_model_simple:   str = "groq/llama-3.1-8b-instant"
+    ai_model_standard: str = "groq/llama-3.1-70b-versatile"
+    ai_model_complex:  str = "groq/llama-3.1-70b-versatile"
 
     # WhatsApp
     whatsapp_webhook_verify_token: str

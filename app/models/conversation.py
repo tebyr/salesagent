@@ -2,7 +2,7 @@
 Estado de conversaciones WhatsApp.
 Cada numero de telefono tiene un estado de conversacion activo.
 """
-from sqlalchemy import Column, String, ForeignKey, DateTime, JSON, Text, Boolean, Enum as SAEnum
+from sqlalchemy import Column, String, Integer, ForeignKey, DateTime, JSON, Text, Boolean, Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 import enum
 from app.core.database import Base
@@ -33,12 +33,12 @@ class WhatsAppConversation(UUIDMixin, TimestampMixin, Base):
 
     # Identificacion del participante
     phone_normalized = Column(String(20), nullable=False, index=True)
-    role = Column(SAEnum(ConversationRole), nullable=False)
+    role = Column(SAEnum(ConversationRole, native_enum=False), nullable=False)
     user_id = Column(PGUUID(as_uuid=True), nullable=True)    # Si es vendedor o gerente
     client_id = Column(PGUUID(as_uuid=True), nullable=True)  # Si es tendero
 
     # Estado de la conversacion
-    state = Column(SAEnum(ConversationState), default=ConversationState.IDLE, nullable=False)
+    state = Column(SAEnum(ConversationState, native_enum=False), default=ConversationState.IDLE, nullable=False)
 
     # Contexto (JSON con datos del flujo actual)
     context = Column(JSON, default={})
@@ -74,5 +74,5 @@ class MessageLog(UUIDMixin, Base):
 
     # Si fue enviado por el agente o por el scheduler
     triggered_by = Column(String(100), nullable=True)
-    ai_model_used = Column(String(50), nullable=True)
-    ai_tokens_used = Column(Column(String).__class__, nullable=True)
+    ai_model_used  = Column(String(50), nullable=True)
+    ai_tokens_used = Column(Integer,    nullable=True)   # total tokens (input+output)

@@ -15,14 +15,17 @@
 | 1.2.1   | 2026-04-11 | +docs/formacion/ y docs/go_to_market/ — documentación estratégica y de producto |
 | 1.2.2   | 2026-04-11 | RAG integration en ClientAgent — `_build_rag_recommendations` con graceful degradation |
 | 1.3.0   | 2026-04-12 | Tests de integración completados (ítem 8) + suite completa de documentación técnica |
+| 1.3.1   | 2026-04-27 | Setup Meta: App IbSales Agent + sandbox WhatsApp activo. Dependencia Meta = ✅ sandbox. |
+| 1.4.0   | 2026-04-28 | LiteLLM provider-agnostic + AIUsageLog (trazabilidad costos) + migración 004 + MONTAJE_LOCAL.md |
+| 1.4.1   | 2026-04-28 | Montaje local Fase 3 completada — stack Docker operativo al 100%. Frente activo: Fase 4 WhatsApp e2e. |
 
 ---
 
-## Estado actual: ~87%
+## Estado actual: ~90%
 
-Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports API, tests de integración). Documentación técnica 100% completa. Pendiente: infraestructura AWS y CI/CD (requieren decisiones externas — cuenta AWS, dominio, región).
+Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports API, tests de integración). **Sesiones 11-12:** capa IA refactorizada a LiteLLM (provider-agnostic), modelo AIUsageLog con trazabilidad de costos por tenant, **Fase 3 montaje local completada** (stack Docker al 100%: PostgreSQL 16+pgvector :5433, Redis :6379, API :8000, Celery worker/beat — seed exitoso y login verificado). Pendiente: Fase 4 WhatsApp e2e y luego infraestructura AWS + CI/CD.
 
-**Frente activo: Fase 2** — próximos ítems: infra AWS (ítem 5) + CI/CD (ítem 6).
+**Frente activo: Fase 2** — inmediato: Fase 4 MONTAJE_LOCAL.md (ngrok + webhook Meta + prueba WA real). Luego: infra AWS (ítem 5) + CI/CD (ítem 6).
 **Para producción multi-tenant escalable: 100%** (Fase 2 + Fase 3 completa).
 
 ---
@@ -78,7 +81,7 @@ Fase 1 completada. En Fase 2: ítems 7, 9 y 8 completados (API tenants, Reports 
 
 | Dependencia | Estado | Impacto si falla |
 |-------------|--------|-----------------|
-| Cuenta Meta Business + WABA aprobada | Por gestionar | Bloquea todo el flujo WhatsApp |
+| Cuenta Meta Business + WABA aprobada | ✅ Sandbox activo — App IbSales Agent creada. Pendiente: número real + webhook URL (AWS) | Bloquea flujo WhatsApp en producción |
 | Anthropic API key de producción | Por gestionar | Bloquea agentes IA |
 | Voyage AI API key de producción | Por gestionar | Bloquea búsqueda semántica |
 | SendGrid account verificada | Por gestionar | Bloquea reportes a gerencia |

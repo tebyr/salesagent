@@ -939,5 +939,68 @@ Tipologias de establecimiento configurables por tenant. Reemplaza el ENUM fijo `
 
 ---
 
+## 14. `ai_usage_logs`
+
+Registro inmutable de cada llamada a un modelo de IA. Permite control de costos
+por tenant, análisis de eficiencia y base para facturación por consumo en el SaaS.
+Provider-agnostic gracias a LiteLLM: funciona con Anthropic, OpenAI, Google o cualquier
+proveedor soportado.
+
+| Columna | Tipo | Nulo | Descripción |
+|---------|------|------|-------------|
+| `id` | UUID | NO | PK |
+| `created_at` | timestamptz | NO | Momento de la llamada |
+| `updated_at` | timestamptz | NO | (TimestampMixin) |
+| `tenant_id` | UUID | NO | FK → tenants |
+| `provider` | varchar(20) | NO | `anthropic` \| `openai` \| `google` \| `mistral` \| `unknown` |
+| `model` | varchar(100) | NO | Nombre exacto del modelo: `claude-sonnet-4-6`, `gpt-4o`, etc. |
+| `agent_class` | varchar(50) | NO | `SalesAgent` \| `ClientAgent` \| `ManagementAgent` |
+| `triggered_by` | varchar(100) | SÍ | Origen: `inbound_message` \| `scheduler_briefing` \| `scheduler_summary` \| `scheduler_report` \| `scheduler_followup` \| `scheduler_alert` \| `unknown` |
+| `conversation_id` | UUID | SÍ | FK → wa_conversations. Null para llamadas del scheduler |
+| `input_tokens` | integer | NO | Tokens enviados al modelo (prompt) |
+| `output_tokens` | integer | NO | Tokens generados (completion) |
+| `total_tokens` | integer | NO | input + output (desnormalizado para queries rápidas) |
+| `cost_usd` | numeric(10,6) | NO | Costo en USD calculado con tarifa del modelo en el momento de la llamada |
+
+### Índices
+| Índice | Columnas | Propósito |
+|--------|----------|-----------|
+| `ix_ai_usage_logs_tenant_id` | tenant_id | Listado por tenant |
+| `ix_ai_usage_logs_conversation_id` | conversation_id | Costo por conversación |
+| `ix_ai_usage_logs_tenant_created` | (tenant_id, created_at) | Costo mensual — query crítica para alertas |
+
+### Tarifas configuradas (`app/agents/base.py → MODEL_PRICING`)
+| Modelo | Input $/1M | Output $/1M |
+|--------|-----------|------------|
+| claude-haiku-4-5 | $0.80 | $4.00 |
+| claude-sonnet-4-6 | $3.00 | $15.00 |
+| claude-opus-4-6 | $15.00 | $75.00 |
+| gpt-4o-mini | $0.15 | $0.60 |
+| gpt-4o | $2.50 | $10.00 |
+| gemini/gemini-pro | $0.50 | $1.50 |
+
+### Umbrales de alerta (`.env`)
+| Variable | Default | Comportamiento al superarse |
+|----------|---------|----------------------------|
+| `AI_COST_ALERT_THRESHOLD_USD` | $50 | `structlog.warning("ai_cost_alert")` visible en Sentry |
+| `AI_COST_HARD_LIMIT_USD` | $100 | `structlog.error("ai_cost_hard_limit_reached")` — requiere acción manual |
+
+> Los umbrales no bloquean llamadas en v1. El bloqueo automático es roadmap P3.
+
+### Query de costo mensual por tenant
+```sql
+SELECT
+    tenant_id,
+    SUM(cost_usd)     AS total_usd,
+    SUM(total_tokens) AS total_tokens,
+    COUNT(*)          AS total_calls
+FROM ai_usage_logs
+WHERE tenant_id = '<uuid>'
+  AND created_at >= DATE_TRUNC('month', NOW())
+GROUP BY tenant_id;
+```
+
+---
+
 *Documento generado para el proyecto Sales Agent SaaS*
 *Proxima revision: al aprobarse cambios en el modelo de datos*

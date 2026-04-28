@@ -239,9 +239,9 @@ async def seed(company: str, admin_email: str, admin_password: str):
 
         # ── Vendedores ─────────────────────────────────────────────────
         salespersons_data = [
-            ("Carlos Mendez",    "+573001111111", "Norte"),
+            ("Oscar Gomez",      "+573174003589", "Norte"),
             ("Sandra Gutierrez", "+573002222222", "Centro"),
-            ("Juan Perez",       "+573003333333", "Sur"),
+            ("Danilo Juvinao",   "+573162460168", "Sur"),
         ]
         salesperson_by_zone: dict[str, User] = {}
         salesperson_list = []
@@ -392,9 +392,9 @@ async def seed(company: str, admin_email: str, admin_password: str):
         period_start, period_end = month_range(today.year, today.month)
 
         goals_amounts = {
-            salesperson_list[0].id: 12_000_000,  # Carlos Mendez — Norte
+            salesperson_list[0].id: 12_000_000,  # Oscar Gomez — Norte
             salesperson_list[1].id: 14_000_000,  # Sandra Gutierrez — Centro
-            salesperson_list[2].id: 10_000_000,  # Juan Perez — Sur
+            salesperson_list[2].id: 10_000_000,  # Danilo Juvinao — Sur
         }
         for sp in salesperson_list:
             goal = SalesGoal(
